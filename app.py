@@ -1,7 +1,11 @@
 import streamlit as st
 
-# --- ต้องอยู่บรรทัดแรกสุด ---
-st.set_page_config(page_title="GATE VALVE CONTROL", layout="wide")
+# --- 1. ตั้งค่าหน้ากระดาน (ต้องอยู่บรรทัดแรกสุดเสมอ) ---
+st.set_page_config(
+    page_title="GATE VALVE CONTROL SYSTEM",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
 
 import pandas as pd
 import numpy as np
@@ -10,52 +14,59 @@ from datetime import datetime, timedelta
 import firebase_admin
 from firebase_admin import credentials, db
 
-# --- 1. ตั้งค่า Firebase (ฉบับแก้ RefreshError ขั้นเด็ดขาด) ---
+# --- 2. การเชื่อมต่อ Firebase (ฉบับแก้ RefreshError) ---
 if not firebase_admin._apps:
     try:
-        # ดึงข้อมูลจาก Secrets
+        # ดึงข้อมูลจาก st.secrets
         fb_dict = dict(st.secrets["firebase"])
         
-        # ทำความสะอาด Private Key
-        # 1. ลบช่องว่างหัว-ท้าย
-        clean_key = fb_dict["private_key"].strip()
-        # 2. แปลงตัวอักษร \n (ถ้ามี) ให้เป็นการขึ้นบรรทัดใหม่จริงๆ
-        clean_key = clean_key.replace("\\n", "\n")
+        # ทำความสะอาดรหัส Private Key
+        p_key = fb_dict["private_key"].strip()
+        if "\\n" in p_key:
+            p_key = p_key.replace("\\n", "\n")
+        fb_dict["private_key"] = p_key
         
-        fb_dict["private_key"] = clean_key
-        
-        # สร้าง Credential
+        # เริ่มต้นระบบ
         cred = credentials.Certificate(fb_dict)
         firebase_admin.initialize_app(cred, {
             'databaseURL': 'https://dbsensor-eb39d-default-rtdb.firebaseio.com'
         })
     except Exception as e:
-        st.error(f"❌ Firebase Auth Failed: {e}")
+        st.error(f"⚠️ ไม่สามารถเชื่อมต่อ Firebase ได้: {e}")
         st.stop()
 
-# อ้างอิง Node หลัก
+# อ้างอิง Node หลักในฐานข้อมูล
 ref = db.reference('valve_system')
 user_ref = db.reference('valve_system/users')
 log_ref = db.reference('activity_logs')
 
-# --- 2. ฟังก์ชันย่อย ---
+# --- 3. ฟังก์ชันการทำงานพื้นฐาน ---
+
 def write_log(action):
+    """บันทึกเหตุการณ์ลง Firebase"""
     try:
         log_ref.push({
             "user": st.session_state.get('username', 'Unknown'),
             "action": action,
             "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         })
-    except: pass
+    except:
+        pass
 
 def init_default_user():
+    """สร้างบัญชี Admin เริ่มต้นถ้ายังไม่มีในระบบ"""
     try:
         if user_ref.get() is None:
-            user_ref.child('admin').set({'password': 'papak123', 'role': 'super_admin'})
-    except: pass
+            user_ref.child('admin').set({
+                'password': 'papak123',
+                'role': 'super_admin'
+            })
+    except:
+        pass
 
-@st.cache_data(ttl=2) # ช่วยให้การดึงข้อมูลเร็วขึ้นและไม่กระตุก
-def get_safe_data():
+@st.cache_data(ttl=2)
+def get_live_data():
+    """ดึงข้อมูลจาก Firebase แบบ Real-time"""
     try:
         data = ref.get()
         if data:
@@ -63,128 +74,152 @@ def get_safe_data():
             return data
     except:
         pass
-    return {'live_pressure': 0.0, 'valve_rotation': 0.0, 'auto_mode': True, 'motor_load': 0.0, 'schedule': [], 'online': False}
+    return {
+        'live_pressure': 0.0, 'valve_rotation': 0.0, 
+        'auto_mode': True, 'motor_load': 0.0, 
+        'schedule': [], 'online': False
+    }
 
-# --- 3. ระบบ Login ---
+# --- 4. ระบบ Login ---
+
 def check_login():
     if "logged_in" not in st.session_state:
         st.session_state.logged_in = False
 
     if not st.session_state.logged_in:
+        # ตกแต่งหน้า Login
         st.markdown("""
             <style>
-            .login-container { background-color: rgba(30, 39, 46, 0.9); padding: 40px; border-radius: 15px; border: 1px solid #00ff88; text-align: center; }
+            .login-box {
+                background-color: rgba(30, 39, 46, 0.95);
+                padding: 50px;
+                border-radius: 20px;
+                border: 2px solid #00ff88;
+                box-shadow: 0 0 20px rgba(0, 255, 136, 0.2);
+                text-align: center;
+            }
             </style>
         """, unsafe_allow_html=True)
         
-        _, col2, _ = st.columns([1, 1.2, 1])
-        with col2:
-            st.markdown('<div class="login-container">', unsafe_allow_html=True)
-            st.title("🔐 GATE CONTROL")
-            u = st.text_input("Username", key="login_user")
-            p = st.text_input("Password", type="password", key="login_pass")
-            if st.button("Login", use_container_width=True):
-                user_data = user_ref.child(u).get()
-                if user_data and user_data.get('password') == p:
+        _, col, _ = st.columns([1, 1.5, 1])
+        with col:
+            st.markdown('<div class="login-box">', unsafe_allow_html=True)
+            st.title("🔐 GATE CONTROL LOGIN")
+            user_input = st.text_input("Username", key="input_u")
+            pass_input = st.text_input("Password", type="password", key="input_p")
+            
+            if st.button("เข้าสู่ระบบ", use_container_width=True):
+                user_data = user_ref.child(user_input).get()
+                if user_data and user_data.get('password') == pass_input:
                     st.session_state.logged_in = True
-                    st.session_state.username = u
-                    write_log("User Logged In")
+                    st.session_state.username = user_input
+                    write_log("เข้าสู่ระบบ")
                     st.rerun()
                 else:
-                    st.error("Invalid Username or Password")
+                    st.error("ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง")
             st.markdown('</div>', unsafe_allow_html=True)
         return False
     return True
 
-# --- 4. Main App ---
+# --- 5. หน้า Dashboard หลัก ---
+
 if check_login():
     init_default_user()
-    firebase_data = get_safe_data()
+    data = get_live_data()
 
-    # Sidebar
-    st.sidebar.markdown(f"### 👤 User: {st.session_state.username}")
-    if st.sidebar.button("Logout"):
+    # แถบเมนูด้านข้าง
+    st.sidebar.markdown(f"### 👤 ผู้ใช้งาน: {st.session_state.username}")
+    if st.sidebar.button("ออกจากระบบ"):
+        write_log("ออกจากระบบ")
         st.session_state.logged_in = False
         st.rerun()
     
-    if not firebase_data['online']:
-        st.sidebar.warning("⚠️ Offline Mode")
+    st.sidebar.divider()
+    if data['online']:
+        st.sidebar.success("● ระบบออนไลน์")
     else:
-        st.sidebar.success("● System Online")
+        st.sidebar.error("○ ระบบออฟไลน์")
 
-    # CSS
+    # ตกแต่ง UI ด้วย CSS
     st.markdown("""
         <style>
-        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Rajdhani:wght@300;500;700&display=swap');
-        .stApp { background: radial-gradient(circle, #1a1f25 0%, #0d0f12 100%); color: #e0e0e0; font-family: 'Rajdhani', sans-serif; }
-        [data-testid="stMetricValue"] { font-family: 'Orbitron', sans-serif; color: #00ff88 !important; }
-        .section-head-red { border-bottom: 1px solid #333; color: #ff3e3e; font-family: 'Orbitron'; font-size: 1.1rem; padding-bottom: 5px; margin-bottom: 15px; }
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Rajdhani:wght@500;700&display=swap');
+        .stApp { background: #0d0f12; color: #e0e0e0; font-family: 'Rajdhani', sans-serif; }
+        [data-testid="stMetricValue"] { font-family: 'Orbitron', sans-serif; color: #00ff88 !important; font-size: 2rem !important; }
+        .head-title { font-family: 'Orbitron'; color: #00ff88; text-shadow: 0 0 10px rgba(0,255,136,0.5); }
+        .section-header { border-left: 5px solid #ff3e3e; padding-left: 10px; margin: 20px 0; font-family: 'Orbitron'; color: #ff3e3e; }
         </style>
-        """, unsafe_allow_html=True)
+    """, unsafe_allow_html=True)
 
-    st.markdown('<h1 style="font-family:\'Orbitron\'; text-shadow: 0 0 10px #00ff88;">SYSTEM CONTROL VALVE PAPAK</h1>', unsafe_allow_html=True)
+    st.markdown('<h1 class="head-title">SYSTEM CONTROL VALVE PAPAK</h1>', unsafe_allow_html=True)
 
-    # Metrics
-    c1, c2, c3, c4 = st.columns(4)
-    with c1: st.metric("Live Pressure", f"{firebase_data.get('live_pressure', 0.0):.2f} BAR")
-    with c2: st.metric("Valve Rotation", f"{firebase_data.get('valve_rotation', 0.0):.1f} REV")
-    with c3: st.metric("Motor Load", f"{firebase_data.get('motor_load', 0.0)} A")
-    with c4: st.metric("System Time", datetime.now().strftime("%H:%M:%S"))
+    # แสดงผลค่า Metrics
+    m1, m2, m3, m4 = st.columns(4)
+    with m1: st.metric("แรงดันขณะนี้", f"{data.get('live_pressure', 0.0):.2f} BAR")
+    with m2: st.metric("รอบการหมุน", f"{data.get('valve_rotation', 0.0):.1f} REV")
+    with m3: st.metric("โหลดมอเตอร์", f"{data.get('motor_load', 0.0)} A")
+    with m4: st.metric("เวลาปัจจุบัน", datetime.now().strftime("%H:%M:%S"))
 
-    # Main Panels
-    col_left, col_right = st.columns([1.5, 1])
-    with col_left:
-        st.markdown('<div class="section-head-red">🚨 PRESSURE TREND</div>', unsafe_allow_html=True)
-        if 'history_df' not in st.session_state:
-            time_index = pd.date_range(start=datetime.now()-timedelta(days=3), end=datetime.now(), freq='1H')
-            st.session_state.history_df = pd.DataFrame({'Pressure': np.random.uniform(3.5, 4.5, size=len(time_index))}, index=time_index)
-        st.line_chart(st.session_state.history_df, color="#ff3e3e", height=250)
+    # ส่วนกลาง: กราฟและตั้งเวลา
+    c_left, c_right = st.columns([1.5, 1])
+    
+    with c_left:
+        st.markdown('<div class="section-header">🚨 แรงดันย้อนหลัง (3 วัน)</div>', unsafe_allow_html=True)
+        # จำลองข้อมูลกราฟ
+        if 'chart_data' not in st.session_state:
+            t_idx = pd.date_range(end=datetime.now(), periods=72, freq='H')
+            st.session_state.chart_data = pd.DataFrame({'Pressure': np.random.uniform(3.8, 4.2, 72)}, index=t_idx)
+        st.line_chart(st.session_state.chart_data, color="#ff3e3e", height=250)
 
-    with col_right:
-        st.markdown('### 📋 SCHEDULE SETTING')
-        current_schedule = pd.DataFrame(firebase_data.get('schedule', [{"START_TIME": "00:00", "TARGET": 0.0}]))
-        edited_df = st.data_editor(current_schedule, use_container_width=True, num_rows="dynamic")
-        if st.button("Apply & Sync"):
-            ref.update({'schedule': edited_df.to_dict('records')})
-            write_log("Updated Schedule")
-            st.success("Synced!")
+    with c_right:
+        st.markdown('### 📋 ตารางการทำงาน')
+        sched_df = pd.DataFrame(data.get('schedule', [{"START_TIME": "08:00", "TARGET": 4.0}]))
+        edited = st.data_editor(sched_df, use_container_width=True, num_rows="dynamic")
+        if st.button("บันทึกตารางใหม่"):
+            ref.update({'schedule': edited.to_dict('records')})
+            write_log("แก้ไขตารางทำงาน")
+            st.success("บันทึกสำเร็จ!")
 
-    # Control Panel
-    st.markdown('### 🛠️ MANUAL OVERRIDE')
-    mode_remote = firebase_data.get('auto_mode', True)
-    ctrl_1, ctrl_2, ctrl_3, ctrl_4 = st.columns(4)
+    # ส่วนล่าง: แผงควบคุม Manual
+    st.divider()
+    st.markdown('### 🛠️ แผงควบคุมวาล์ว (MANUAL OVERRIDE)')
+    
+    is_auto = data.get('auto_mode', True)
+    ctrl1, ctrl2, ctrl3, ctrl4 = st.columns(4)
 
-    with ctrl_3:
-        is_auto = st.toggle("Auto Mode", value=mode_remote)
-        if is_auto != mode_remote:
-            ref.update({'auto_mode': is_auto})
-            write_log(f"Auto Mode: {is_auto}")
+    with ctrl3:
+        new_mode = st.toggle("โหมดอัตโนมัติ (Auto)", value=is_auto)
+        if new_mode != is_auto:
+            ref.update({'auto_mode': new_mode})
+            write_log(f"เปลี่ยนโหมดเป็น {'Auto' if new_mode else 'Manual'}")
+            st.rerun()
 
-    with ctrl_1:
-        if st.button("🔼 Open Valve", use_container_width=True, disabled=is_auto):
-            ref.update({'command': 'OPEN', 'last_command_time': str(datetime.now())})
-            write_log("Command: OPEN")
+    with ctrl1:
+        if st.button("🔼 เปิดวาล์ว", use_container_width=True, disabled=is_auto):
+            ref.update({'command': 'OPEN', 'last_cmd': str(datetime.now())})
+            write_log("สั่งเปิดวาล์ว (Manual)")
 
-    with ctrl_2:
-        if st.button("🔽 Close Valve", use_container_width=True, disabled=is_auto):
-            ref.update({'command': 'CLOSE', 'last_command_time': str(datetime.now())})
-            write_log("Command: CLOSE")
+    with ctrl2:
+        if st.button("🔽 ปิดวาล์ว", use_container_width=True, disabled=is_auto):
+            ref.update({'command': 'CLOSE', 'last_cmd': str(datetime.now())})
+            write_log("สั่งปิดวาล์ว (Manual)")
 
-    with ctrl_4:
-        if st.button("🚨 EMERGENCY", type="primary", use_container_width=True):
+    with ctrl4:
+        if st.button("🚨 หยุดฉุกเฉิน", type="primary", use_container_width=True):
             ref.update({'command': 'STOP', 'emergency': True})
-            write_log("EMERGENCY STOP")
+            write_log("🚨 สั่งหยุดฉุกเฉิน!")
 
-    # Logs
-    st.markdown("### 📜 ACTIVITY LOGS")
+    # ส่วนแสดงประวัติล่าสุด
+    st.divider()
+    st.markdown("### 📜 ประวัติการใช้งานล่าสุด")
     try:
-        logs = log_ref.order_by_key().limit_to_last(10).get()
+        logs = log_ref.order_by_key().limit_to_last(8).get()
         if logs:
-            st.table(pd.DataFrame(list(logs.values())[::-1]))
-    except: pass
+            log_df = pd.DataFrame(list(logs.values())[::-1])
+            st.table(log_df[['timestamp', 'user', 'action']])
+    except:
+        st.info("ยังไม่มีข้อมูลประวัติ")
 
-    # Auto-refresh: รันเฉพาะเมื่อไม่มีการพิมพ์ข้อความ (ป้องกันหน้าเด้งขณะแก้ไขข้อมูล)
-    time.sleep(2)
+    # --- ส่วนการ Refresh หน้าจอ ---
+    time.sleep(3) # รอ 3 วินาทีก่อนโหลดใหม่
     st.rerun()
-
-
