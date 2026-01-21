@@ -10,17 +10,26 @@ from datetime import datetime, timedelta
 import firebase_admin
 from firebase_admin import credentials, db
 
-# --- 1. ตั้งค่า Firebase ---
+# --- 1. ตั้งค่า Firebase (ฉบับแก้ RefreshError) ---
 if not firebase_admin._apps:
     try:
         fb_dict = dict(st.secrets["firebase"])
-        fb_dict["private_key"] = fb_dict["private_key"].replace("\\n", "\n")
+        
+        # ล้างช่องว่างที่อาจติดมาจากการก๊อปปี้
+        p_key = fb_dict["private_key"].strip()
+        
+        # ตรวจสอบว่ามี \n ในรูปแบบตัวอักษรหรือไม่ ถ้ามีให้แปลงเป็นขึ้นบรรทัดใหม่จริง
+        if "\\n" in p_key:
+            p_key = p_key.replace("\\n", "\n")
+        
+        fb_dict["private_key"] = p_key
+        
         cred = credentials.Certificate(fb_dict)
         firebase_admin.initialize_app(cred, {
             'databaseURL': 'https://dbsensor-eb39d-default-rtdb.firebaseio.com'
         })
     except Exception as e:
-        st.error(f"Firebase Config Error: {e}")
+        st.error(f"⚠️ Firebase Config Error: {e}")
         st.stop()
 
 # อ้างอิง Node หลัก
@@ -176,3 +185,4 @@ if check_login():
     # Auto-refresh: รันเฉพาะเมื่อไม่มีการพิมพ์ข้อความ (ป้องกันหน้าเด้งขณะแก้ไขข้อมูล)
     time.sleep(2)
     st.rerun()
+
