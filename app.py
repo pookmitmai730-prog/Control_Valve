@@ -9,12 +9,16 @@ from firebase_admin import credentials, db
 # --- 1. ตั้งค่า Firebase ---
 if not firebase_admin._apps:
     try:
-        # ดึงข้อมูลจาก st.secrets["firebase"] ที่เราตั้งไว้
+        # 1. ดึงข้อมูลจาก st.secrets["firebase"]
         fb_dict = dict(st.secrets["firebase"])
         
-        # จัดการเรื่องเครื่องหมายขึ้นบรรทัดใหม่ในรหัสส่วนตัว
+        # 2. จัดการเรื่องเครื่องหมายขึ้นบรรทัดใหม่ (สำคัญมาก)
         fb_dict["private_key"] = fb_dict["private_key"].replace("\\n", "\n")
         
+        # 3. สร้าง credentials จาก dict ที่เตรียมไว้ (เพิ่มบรรทัดนี้)
+        cred = credentials.Certificate(fb_dict)
+        
+        # 4. เริ่มต้นแอปโดยใช้ cred ที่สร้างขึ้น
         firebase_admin.initialize_app(cred, {
             'databaseURL': 'https://dbsensor-eb39d-default-rtdb.firebaseio.com'
         })
@@ -215,3 +219,4 @@ if check_login():
     time.sleep(2)
 
     st.rerun()
+
