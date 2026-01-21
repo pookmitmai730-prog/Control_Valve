@@ -9,7 +9,12 @@ from firebase_admin import credentials, db
 # --- 1. ตั้งค่า Firebase ---
 if not firebase_admin._apps:
     try:
-        cred = credentials.Certificate('dbsensor-eb39d-firebase-adminsdk-fbsvc-680b9bb5a7.json')
+        # ดึงข้อมูลจาก st.secrets["firebase"] ที่เราตั้งไว้
+        fb_dict = dict(st.secrets["firebase"])
+        
+        # จัดการเรื่องเครื่องหมายขึ้นบรรทัดใหม่ในรหัสส่วนตัว
+        fb_dict["private_key"] = fb_dict["private_key"].replace("\\n", "\n")
+        
         firebase_admin.initialize_app(cred, {
             'databaseURL': 'https://dbsensor-eb39d-default-rtdb.firebaseio.com'
         })
@@ -208,4 +213,5 @@ if check_login():
         st.warning("Cannot fetch logs.")
 
     time.sleep(2)
+
     st.rerun()
