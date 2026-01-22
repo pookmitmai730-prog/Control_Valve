@@ -193,9 +193,9 @@ if check_login():
 
     # Metrics
     m1, m2, m3, m4 = st.columns(4)
-    with m1: st.metric("แรงดันขณะนี้", f"{data.get('live_pressure', 0.0):.2f} BAR")
-    with m2: st.metric("รอบการหมุน", f"{data.get('valve_rotation', 0.0):.1f} REV")
-    with m3: st.metric("โหลดมอเตอร์", f"{data.get('motor_load', 0.0)} A")
+    with m1: st.metric("แรงดันขณะนี้", f"{data.get('live_pressure', 0.0):.2f} บาร์")
+    with m2: st.metric("รอบการหมุน", f"{data.get('valve_rotation', 0.0):.1f} รอบ")
+    with m3: st.metric("โหลดมอเตอร์", f"{data.get('motor_load', 0.0)} แอมป์")
     with m4: st.metric("เวลาปัจจุบัน", datetime.now().strftime("%H:%M:%S"))
 
     # กราฟและตาราง
@@ -260,3 +260,4 @@ if check_login():
     # Refresh
     time.sleep(3) 
     st.rerun()
+
