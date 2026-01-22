@@ -55,7 +55,8 @@ def check_login():
         st.markdown("""
             <style>
             @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;700&display=swap');
-            html, body, [class*="st-"], p, div { font-family: 'Noto Sans Thai', sans-serif !important; }
+            /* จำกัดฟอนต์เฉพาะในกล่อง Login */
+            .login-box, .login-box input, .login-box button { font-family: 'Noto Sans Thai', sans-serif !important; }
             .login-box {
                 background: rgba(30, 39, 46, 0.95); padding: 50px; border-radius: 20px;
                 border: 2px solid #00ff88; text-align: center; color: white;
@@ -90,35 +91,39 @@ if check_login():
     if data['online']: st.sidebar.success("● ระบบออนไลน์")
     else: st.sidebar.error("○ ระบบออฟไลน์")
 
-    # --- แก้ปัญหา CSS: กันฟอนต์ทับไอคอน และแก้ลูกศรซ้อน ---
+    # --- CSS แก้ไขจุดบกพร่องเรื่อง Icon และ Expander ---
     st.markdown("""
         <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;700&family=Orbitron:wght@400;700&display=swap');
         
-        /* 1. ตั้งค่าฟอนต์พื้นฐาน ยกเว้นพวก Icon/Symbol */
-        html, body, [class*="st-"], .stMarkdown, p, div, span, label {
-            font-family: 'Noto Sans Thai', sans-serif !important;
+        /* แก้ปัญหา Keyboard_double_arrow: ห้ามใช้ฟอนต์ไทยทับ Material Icons */
+        html, body, [class*="st-"] {
+            font-family: 'Noto Sans Thai', sans-serif;
         }
 
-        /* 2. ป้องกันตัวหนังสือไปทับสัญลักษณ์ลูกศรของ Streamlit (แก้คำว่า Keyboard_double...) */
+        /* บังคับคืนค่าไอคอนของ Streamlit ไม่ให้โดน Noto Sans ทับ */
         .st-emotion-cache-1629671, [data-testid="stSidebarCollapseButton"] i, 
-        [data-testid="stExpander"] svg, .material-icons, .material-symbols-outlined {
-            font-family: 'Material Symbols Outlined' !important; /* บังคับใช้ฟอนต์ไอคอนคืน */
+        [data-testid="stExpander"] svg, span[data-testid="stWidgetLabel"] p {
+            font-family: inherit; /* ปล่อยให้ระบบจัดการฟอนต์ไอคอนเอง */
         }
+        
+        /* แก้ไขข้อความปุ่ม Sidebar หด (ถ้ายังขึ้นข้อความอยู่) */
+        [data-testid="stSidebarCollapseButton"]::after { content: none !important; }
 
         .stApp { background: #1e1f22; color: #efefef; }
         [data-testid="stMetricValue"] { font-family: 'Orbitron', sans-serif; color: #00ff88 !important; }
         .head-title { font-weight: 700; color: #00ff88; text-align: center; }
 
-        /* ปรับแต่งปุ่มและสี */
+        /* ปุ่มและสี */
         div.stButton > button { height: 90px !important; border-radius: 12px !important; font-size: 20px !important; font-weight: 700 !important; background-color: #31333f !important; color: #ffffff !important; }
-        div[data-testid="column"]:nth-child(1) div.stButton > button:hover { background-color: #22c55e !important; }
-        div[data-testid="column"]:nth-child(2) div.stButton > button:hover { background-color: #065f46 !important; }
         button[kind="primary"] { background-color: #dc2626 !important; color: white !important; }
 
-        /* แก้ลูกศร Expander ซ้อนทับ */
-        [data-testid="stExpander"] details summary { flex-direction: row-reverse !important; gap: 15px !important; }
-        .streamlit-expanderHeader { background: #262730 !important; border-radius: 10px !important; padding: 10px 15px !important; }
+        /* แก้ลูกศร Expander ซ้อนทับ: ใช้ Padding ขวาเพื่อหลบลูกศรมาตรฐาน */
+        .streamlit-expanderHeader { 
+            background: #262730 !important; 
+            border-radius: 10px !important; 
+            padding-right: 50px !important; /* เว้นที่ให้ลูกศรฝั่งขวา */
+        }
         </style>
     """, unsafe_allow_html=True)
 
@@ -167,15 +172,16 @@ if check_login():
         if st.button("🚨 STOP", type="primary", use_container_width=True):
             ref.update({'command': 'STOP', 'emergency': True}); write_log("หยุดฉุกเฉิน")
 
-    # --- ประวัติ (แก้ไข CSS ลูกศรแล้ว) ---
+    # --- ส่วนประวัติการใช้งาน ---
     st.divider()
-    with st.expander("📊 คลิกเพื่อดูประวัติการใช้งานล่าสุด", expanded=False):
+    # ใช้ข้อความสั้นลงเพื่อลดโอกาสการทับซ้อน
+    with st.expander("📊 ประวัติการใช้งาน 8 รายการล่าสุด", expanded=False):
         try:
             logs = log_ref.order_by_key().limit_to_last(8).get()
             if logs:
                 log_df = pd.DataFrame(list(logs.values())[::-1])
                 st.table(log_df[['timestamp', 'user', 'action']])
             else: st.info("ยังไม่มีข้อมูล")
-        except: st.write("Error")
+        except: st.write("ไม่สามารถดึงข้อมูลได้")
 
     time.sleep(3); st.rerun()
