@@ -114,54 +114,76 @@ if check_login():
     init_default_user()
     data = get_live_data()
 
-    # Sidebar
-    st.sidebar.markdown(f"### 👤 ผู้ใช้งาน: {st.session_state.username}")
-    if st.sidebar.button("ออกจากระบบ", use_container_width=True):
-        write_log("ออกจากระบบ")
-        st.session_state.logged_in = False
-        st.rerun()
-    st.sidebar.divider()
-    if data['online']: st.sidebar.success("● ระบบออนไลน์")
-    else: st.sidebar.error("○ ระบบออฟไลน์")
-
-    # --- ตกแต่ง UI ด้วย CSS (แก้ไขจุดที่มีปัญหาซ้อนทับ) ---
+    # --- ตกแต่ง UI ด้วย CSS ---
     st.markdown("""
         <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;700&family=Orbitron:wght@400;700&display=swap');
         
+        /* 1. ฟอนต์พื้นฐาน */
         html, body, [class*="st-"], .stMarkdown, p, div, span, label {
             font-family: 'Noto Sans Thai', sans-serif !important;
         }
-        .stApp { background: #1e1f22; color: #efefef; }
         
+        /* 2. แก้ปัญหาไอคอนกลายเป็นตัวหนังสือ (คืนค่า Font ให้ Icon ระบบ) */
+        [data-testid="stSidebarCollapseButton"] svg, 
+        [data-testid="stExpander"] svg,
+        .material-icons {
+            font-family: 'inherit' !important;
+        }
+
+        .stApp { background: #1e1f22; color: #efefef; }
         [data-testid="stMetricValue"] { font-family: 'Orbitron', sans-serif; color: #00ff88 !important; font-size: 2rem !important; }
         .head-title { font-weight: 700; color: #00ff88; text-align: center; text-shadow: 0 0 10px rgba(0,255,136,0.5); }
         .section-header { border-left: 5px solid #ff3e3e; padding-left: 10px; margin: 20px 0; font-weight: 500; color: #ff3e3e; }
 
-        /* ปรับแต่งปุ่ม */
+        /* 3. ปรับขนาด SIDEBAR ให้เล็กลง 50% */
+        [data-testid="stSidebar"] {
+            width: 180px !important; /* ลดความกว้างกรอบ */
+            min-width: 180px !important;
+        }
+        [data-testid="stSidebar"] .stMarkdown p, 
+        [data-testid="stSidebar"] span, 
+        [data-testid="stSidebar"] label {
+            font-size: 0.75rem !important; /* ลดขนาดตัวอักษร */
+        }
+        [data-testid="stSidebar"] button {
+            height: 35px !important; /* ลดความสูงปุ่มใน sidebar */
+            font-size: 12px !important;
+            padding: 0px !important;
+        }
+
+        /* 4. ปรับแต่งปุ่มแผงควบคุมหลัก */
         div.stButton > button { height: 90px !important; border-radius: 12px !important; font-size: 20px !important; font-weight: 700 !important; background-color: #31333f !important; color: #ffffff !important; border: 1px solid #464b5d !important; transition: all 0.3s ease !important; }
         div[data-testid="column"]:nth-child(1) div.stButton > button:hover { background-color: #22c55e !important; box-shadow: 0 0 15px rgba(34, 197, 94, 0.5) !important; }
         div[data-testid="column"]:nth-child(2) div.stButton > button:hover { background-color: #065f46 !important; }
         button[kind="primary"] { background-color: #dc2626 !important; color: white !important; border: 2px solid white !important; }
         
-        /* --- แก้ปัญหา Expander Arrow ซ้อนทับ --- */
+        /* 5. แก้ปัญหา Expander Arrow ซ้อนทับ */
         [data-testid="stExpander"] details summary svg {
-            float: right !important; /* บังคับลูกศรไปขวา */
+            float: right !important;
             margin-top: 5px !important;
         }
         .streamlit-expanderHeader {
             background-color: #262730 !important;
             border-radius: 10px !important;
-            padding: 10px 40px 10px 15px !important; /* เพิ่ม padding ขวาเพื่อหลบลูกศร */
+            padding: 10px 40px 10px 15px !important;
         }
         .streamlit-expanderHeader p {
             font-size: 1.1rem !important;
             font-weight: 600 !important;
-            display: inline-block !important;
-            width: 100% !important;
         }
         </style>
     """, unsafe_allow_html=True)
+
+    # Sidebar (ข้อมูลจะตัวเล็กลงตาม CSS ด้านบน)
+    st.sidebar.markdown(f"👤 ผู้ใช้งาน: **{st.session_state.username}**")
+    if st.sidebar.button("ออกจากระบบ", use_container_width=True):
+        write_log("ออกจากระบบ")
+        st.session_state.logged_in = False
+        st.rerun()
+    st.sidebar.divider()
+    if data['online']: st.sidebar.success("ระบบออนไลน์")
+    else: st.sidebar.error("ระบบออฟไลน์")
 
     st.markdown('<h1 class="head-title">ระบบควบคุมประตูน้ำ น.ปลาปาก</h1>', unsafe_allow_html=True)
 
@@ -218,7 +240,7 @@ if check_login():
             ref.update({'command': 'STOP', 'emergency': True})
             write_log("🚨 สั่งหยุดฉุกเฉิน!")
 
-    # --- ส่วนประวัติการใช้งาน (เน้นแก้ไข CSS) ---
+    # --- ส่วนประวัติการใช้งาน ---
     st.divider()
     with st.expander("📊 คลิกเพื่อดูประวัติการใช้งานล่าสุด", expanded=False):
         try:
