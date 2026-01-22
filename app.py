@@ -103,6 +103,7 @@ def check_login():
                 border: 2px solid #00ff88;
                 box-shadow: 0 0 20px rgba(0, 255, 136, 0.2);
                 text-align: center;
+                color: white;
             }
             </style>
         """, unsafe_allow_html=True)
@@ -135,7 +136,7 @@ if check_login():
 
     # แถบเมนูด้านข้าง
     st.sidebar.markdown(f"### 👤 ผู้ใช้งาน: {st.session_state.username}")
-    if st.sidebar.button("ออกจากระบบ"):
+    if st.sidebar.button("ออกจากระบบ", use_container_width=True):
         write_log("ออกจากระบบ")
         st.session_state.logged_in = False
         st.rerun()
@@ -146,25 +147,75 @@ if check_login():
     else:
         st.sidebar.error("○ ระบบออฟไลน์")
 
-    # ตกแต่ง UI ด้วย CSS - ปรับปรุงฟอนต์ภาษาไทยเป็น Noto Sans Thai
+    # --- ตกแต่ง UI ด้วย CSS (ฟอนต์ Gemini + สีปุ่ม + พื้นหลังสีเทา) ---
     st.markdown("""
         <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;700&family=Orbitron:wght@400;700&display=swap');
         
-        /* บังคับใช้ Noto Sans Thai สำหรับข้อความทั่วไปและภาษาไทย */
+        /* 1. บังคับใช้ Noto Sans Thai ทั้งแอป */
         html, body, [class*="st-"], .stMarkdown, p, div, span, label {
             font-family: 'Noto Sans Thai', sans-serif !important;
         }
 
-        .stApp { background: #0d0f12; color: #e0e0e0; }
+        /* 2. พื้นหลังแดชบอร์ดสีเทาเข้ม */
+        .stApp { 
+            background: #1e1f22; 
+            color: #efefef; 
+        }
         
-        /* ใช้ Orbitron เฉพาะส่วนที่เป็นตัวเลขหรือหัวข้อสไตล์ดิจิทัลตามเดิม */
-        [data-testid="stMetricValue"] { font-family: 'Orbitron', sans-serif; color: #00ff88 !important; font-size: 2rem !important; }
-        .head-title { font-family: 'Noto Sans Thai', 'Orbitron', sans-serif; font-weight: 700; color: #00ff88; text-shadow: 0 0 10px rgba(0,255,136,0.5); }
-        .section-header { border-left: 5px solid #ff3e3e; padding-left: 10px; margin: 20px 0; font-family: 'Noto Sans Thai', 'Orbitron', sans-serif; font-weight: 500; color: #ff3e3e; }
-        
+        /* 3. ตกแต่ง Metric และหัวข้อ */
+        [data-testid="stMetricValue"] { 
+            font-family: 'Orbitron', sans-serif; 
+            color: #00ff88 !important; 
+            font-size: 2rem !important; 
+        }
+        .head-title { 
+            font-weight: 700; 
+            color: #00ff88; 
+            text-align: center;
+            text-shadow: 0 0 10px rgba(0,255,136,0.5); 
+        }
+        .section-header { 
+            border-left: 5px solid #ff3e3e; 
+            padding-left: 10px; 
+            margin: 20px 0; 
+            font-weight: 500; 
+            color: #ff3e3e; 
+        }
+
+        /* 4. ปรับขนาดและสไตล์ปุ่มสั่งงาน */
+        div.stButton > button {
+            height: 90px !important;
+            border-radius: 12px !important;
+            font-size: 20px !important;
+            font-weight: 700 !important;
+            transition: all 0.3s ease;
+        }
+
+        /* 5. ปุ่ม OPEN - สีเขียวนีออน (Column 1) */
+        div[data-testid="column"]:nth-child(1) button {
+            background-color: #22c55e !important;
+            color: white !important;
+            border: none !important;
+            box-shadow: 0 4px 15px rgba(34, 197, 94, 0.3);
+        }
+
+        /* 6. ปุ่ม CLOSE - สีเขียวเข้ม (Column 2) */
+        div[data-testid="column"]:nth-child(2) button {
+            background-color: #065f46 !important;
+            color: white !important;
+            border: none !important;
+        }
+
+        /* 7. ปุ่ม STOP - สีแดงสด (Primary Type) */
+        button[kind="primary"] {
+            background-color: #dc2626 !important;
+            color: white !important;
+            border: 2px solid white !important;
+        }
+
         /* แก้ไขฟอนต์ในปุ่ม */
-        button div p { font-family: 'Noto Sans Thai', sans-serif !important; font-weight: 500; }
+        button div p { font-family: 'Noto Sans Thai', sans-serif !important; }
         </style>
     """, unsafe_allow_html=True)
 
@@ -182,7 +233,6 @@ if check_login():
     
     with c_left:
         st.markdown('<div class="section-header">🚨 แรงดันย้อนหลัง (3 วัน)</div>', unsafe_allow_html=True)
-        # จำลองข้อมูลกราฟ
         if 'chart_data' not in st.session_state:
             t_idx = pd.date_range(end=datetime.now(), periods=72, freq='H')
             st.session_state.chart_data = pd.DataFrame({'Pressure': np.random.uniform(3.8, 4.2, 72)}, index=t_idx)
@@ -192,7 +242,7 @@ if check_login():
         st.markdown('### 📋 ตารางการทำงาน')
         sched_df = pd.DataFrame(data.get('schedule', [{"START_TIME": "08:00", "TARGET": 4.0}]))
         edited = st.data_editor(sched_df, use_container_width=True, num_rows="dynamic")
-        if st.button("บันทึกตารางใหม่"):
+        if st.button("บันทึกตารางใหม่", use_container_width=True):
             ref.update({'schedule': edited.to_dict('records')})
             write_log("แก้ไขตารางทำงาน")
             st.success("บันทึกสำเร็จ!")
@@ -212,17 +262,17 @@ if check_login():
             st.rerun()
 
     with ctrl1:
-        if st.button("🔼 เปิดวาล์ว", use_container_width=True, disabled=is_auto):
+        if st.button("🔼 เปิดวาล์ว\n(OPEN)", use_container_width=True, disabled=is_auto):
             ref.update({'command': 'OPEN', 'last_cmd': str(datetime.now())})
             write_log("สั่งเปิดวาล์ว (Manual)")
 
     with ctrl2:
-        if st.button("🔽 ปิดวาล์ว", use_container_width=True, disabled=is_auto):
+        if st.button("🔽 ปิดวาล์ว\n(CLOSE)", use_container_width=True, disabled=is_auto):
             ref.update({'command': 'CLOSE', 'last_cmd': str(datetime.now())})
             write_log("สั่งปิดวาล์ว (Manual)")
 
     with ctrl4:
-        if st.button("🚨 หยุดฉุกเฉิน", type="primary", use_container_width=True):
+        if st.button("🚨 หยุดฉุกเฉิน\n(STOP)", type="primary", use_container_width=True):
             ref.update({'command': 'STOP', 'emergency': True})
             write_log("🚨 สั่งหยุดฉุกเฉิน!")
 
@@ -238,5 +288,5 @@ if check_login():
         st.info("ยังไม่มีข้อมูลประวัติ")
 
     # --- ส่วนการ Refresh หน้าจอ ---
-    time.sleep(3) # รอ 3 วินาทีก่อนโหลดใหม่
+    time.sleep(3) 
     st.rerun()
