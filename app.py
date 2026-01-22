@@ -96,4 +96,181 @@ def check_login():
         
         _, col, _ = st.columns([1, 1.5, 1])
         with col:
-            st
+            st.markdown('<div class="login-box">', unsafe_allow_html=True)
+            st.title("🔐 GATE CONTROL LOGIN")
+            user_input = st.text_input("Username", key="input_u")
+            pass_input = st.text_input("Password", type="password", key="input_p")
+            
+            if st.button("เข้าสู่ระบบ", use_container_width=True):
+                user_data = user_ref.child(user_input).get()
+                if user_data and user_data.get('password') == pass_input:
+                    st.session_state.logged_in = True
+                    st.session_state.username = user_input
+                    write_log("เข้าสู่ระบบ")
+                    st.rerun()
+                else:
+                    st.error("ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง")
+            st.markdown('</div>', unsafe_allow_html=True)
+        return False
+    return True
+
+# --- 5. หน้า Dashboard หลัก ---
+if check_login():
+    init_default_user()
+    data = get_live_data()
+
+    # แถบเมนูด้านข้าง
+    st.sidebar.markdown(f"### 👤 ผู้ใช้งาน: {st.session_state.username}")
+    if st.sidebar.button("ออกจากระบบ", use_container_width=True):
+        write_log("ออกจากระบบ")
+        st.session_state.logged_in = False
+        st.rerun()
+    
+    st.sidebar.divider()
+    if data['online']:
+        st.sidebar.success("● ระบบออนไลน์")
+    else:
+        st.sidebar.error("○ ระบบออฟไลน์")
+
+    # --- ตกแต่ง UI ด้วย CSS ---
+    st.markdown("""
+        <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;700&family=Orbitron:wght@400;700&display=swap');
+        
+        html, body, [class*="st-"], .stMarkdown, p, div, span, label {
+            font-family: 'Noto Sans Thai', sans-serif !important;
+        }
+        .stApp { background: #1e1f22; color: #efefef; }
+        
+        [data-testid="stMetricValue"] { 
+            font-family: 'Orbitron', sans-serif; 
+            color: #00ff88 !important; 
+            font-size: 2rem !important; 
+        }
+        .head-title { 
+            font-weight: 700; color: #00ff88; text-align: center;
+            text-shadow: 0 0 10px rgba(0,255,136,0.5); 
+        }
+        .section-header { 
+            border-left: 5px solid #ff3e3e; padding-left: 10px; margin: 20px 0; 
+            font-weight: 500; color: #ff3e3e; 
+        }
+
+        /* ปรับแต่งปุ่มพื้นฐาน */
+        div.stButton > button {
+            height: 90px !important;
+            border-radius: 12px !important;
+            font-size: 20px !important;
+            font-weight: 700 !important;
+            background-color: #31333f !important;
+            color: #ffffff !important;
+            border: 1px solid #464b5d !important;
+            transition: all 0.3s ease !important;
+        }
+
+        /* Hover Effects */
+        div[data-testid="column"]:nth-child(1) div.stButton > button:hover {
+            background-color: #22c55e !important;
+            box-shadow: 0 0 15px rgba(34, 197, 94, 0.5) !important;
+        }
+        div[data-testid="column"]:nth-child(2) div.stButton > button:hover {
+            background-color: #065f46 !important;
+        }
+        div[data-testid="column"]:nth-child(2) div.stDataEditor + div.stButton > button:hover {
+            background-color: #3b82f6 !important;
+        }
+
+        /* ปุ่ม STOP */
+        button[kind="primary"] {
+            background-color: #dc2626 !important; color: white !important; border: 2px solid white !important;
+        }
+        button[kind="primary"]:hover {
+            background-color: #ff0000 !important;
+            box-shadow: 0 0 20px rgba(255, 0, 0, 0.6) !important;
+        }
+        
+        [data-testid="stMetricLabel"] {
+            color: #ffffff !important;
+            font-size: 1.1rem !important;
+        }
+
+        /* แก้ไข Expander ป้องกันภาพไอคอนซ้อนทับข้อความ */
+        .streamlit-expanderHeader { 
+            font-size: 1.1rem !important; 
+            font-weight: 600 !important; 
+            gap: 15px !important; 
+        }
+        </style>
+    """, unsafe_allow_html=True)
+
+    st.markdown('<h1 class="head-title">ระบบควบคุมประตูน้ำ น.ปลาปาก</h1>', unsafe_allow_html=True)
+
+    # --- Metrics ---
+    m1, m2, m3, m4 = st.columns(4)
+    with m1: st.metric("แรงดันขณะนี้", f"{data.get('live_pressure', 0.0):.2f} บาร์")
+    with m2: st.metric("รอบการหมุน", f"{data.get('valve_rotation', 0.0):.1f} รอบ")
+    with m3: st.metric("โหลดมอเตอร์", f"{data.get('motor_load', 0.0)} แอมป์")
+    with m4: st.metric("เวลาปัจจุบัน", datetime.now().strftime("%H:%M:%S"))
+
+    # --- กราฟและตาราง ---
+    c_left, c_right = st.columns([1.5, 1])
+    with c_left:
+        st.markdown('<div class="section-header">🚨 แรงดันย้อนหลัง (3 วัน)</div>', unsafe_allow_html=True)
+        if 'chart_data' not in st.session_state:
+            t_idx = pd.date_range(end=datetime.now(), periods=72, freq='H')
+            st.session_state.chart_data = pd.DataFrame({'Pressure': np.random.uniform(3.8, 4.2, 72)}, index=t_idx)
+        st.line_chart(st.session_state.chart_data, color="#ff3e3e", height=250)
+
+    with c_right:
+        st.markdown('### 📋 ตารางการทำงาน')
+        sched_df = pd.DataFrame(data.get('schedule', [{"START_TIME": "08:00", "TARGET": 4.0}]))
+        edited = st.data_editor(sched_df, use_container_width=True, num_rows="dynamic")
+        if st.button("บันทึกตารางใหม่", use_container_width=True):
+            ref.update({'schedule': edited.to_dict('records')})
+            write_log("แก้ไขตารางทำงาน")
+            st.success("บันทึกสำเร็จ!")
+
+    # --- แผงควบคุม ---
+    st.divider()
+    st.markdown('### 🛠️ แผงควบคุมวาล์ว (MANUAL OVERRIDE)')
+    is_auto = data.get('auto_mode', True)
+    ctrl1, ctrl2, ctrl3, ctrl4 = st.columns(4)
+
+    with ctrl3:
+        new_mode = st.toggle("โหมดอัตโนมัติ (Auto)", value=is_auto)
+        if new_mode != is_auto:
+            ref.update({'auto_mode': new_mode})
+            write_log(f"เปลี่ยนโหมดเป็น {'Auto' if new_mode else 'Manual'}")
+            st.rerun()
+
+    with ctrl1:
+        if st.button("🔼 เปิดวาล์ว\n(OPEN)", use_container_width=True, disabled=is_auto):
+            ref.update({'command': 'OPEN', 'last_cmd': str(datetime.now())})
+            write_log("สั่งเปิดวาล์ว (Manual)")
+
+    with ctrl2:
+        if st.button("🔽 ปิดวาล์ว\n(CLOSE)", use_container_width=True, disabled=is_auto):
+            ref.update({'command': 'CLOSE', 'last_cmd': str(datetime.now())})
+            write_log("สั่งปิดวาล์ว (Manual)")
+
+    with ctrl4:
+        if st.button("🚨 หยุดฉุกเฉิน\n(STOP)", type="primary", use_container_width=True):
+            ref.update({'command': 'STOP', 'emergency': True})
+            write_log("🚨 สั่งหยุดฉุกเฉิน!")
+
+    # --- ส่วนประวัติการใช้งาน ---
+    st.divider()
+    with st.expander("📊 คลิกเพื่อดูประวัติการใช้งานล่าสุด", expanded=False):
+        try:
+            logs = log_ref.order_by_key().limit_to_last(8).get()
+            if logs:
+                log_df = pd.DataFrame(list(logs.values())[::-1])
+                st.table(log_df[['timestamp', 'user', 'action']])
+            else:
+                st.info("ยังไม่มีข้อมูลประวัติ")
+        except:
+            st.write("ดึงข้อมูลประวัติไม่ได้")
+
+    # Refresh
+    time.sleep(3) 
+    st.rerun()
