@@ -4,7 +4,7 @@ import streamlit as st
 st.set_page_config(
     page_title="ระบบควบคุมประตูน้ำ น.นาแก",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="collapsed" # ยุบแถบข้างไว้เริ่มต้น
 )
 
 import pandas as pd
@@ -120,24 +120,15 @@ if check_login():
     init_default_user()
     data = get_live_data()
 
-    # แถบเมนูด้านข้าง
-    st.sidebar.markdown(f"### 👤 ผู้ใช้งาน: {st.session_state.username}")
-    if st.sidebar.button("ออกจากระบบ", use_container_width=True):
-        write_log("ออกจากระบบ")
-        st.session_state.logged_in = False
-        st.rerun()
-    
-    st.sidebar.divider()
-    if data['online']:
-        st.sidebar.success("● ระบบออนไลน์")
-    else:
-        st.sidebar.error("○ ระบบออฟไลน์")
-
-    # --- ตกแต่ง UI ด้วย CSS (ปรับปรุงสลับสี Hover) ---
+    # --- ตกแต่ง UI ด้วย CSS ---
     st.markdown("""
         <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;700&family=Orbitron:wght@400;700&display=swap');
         
+        /* บังคับซ่อนแถบข้าง Sidebar */
+        [data-testid="stSidebar"] { display: none; }
+        [data-testid="stSidebarNav"] { display: none; }
+
         html, body, [class*="st-"], .stMarkdown, p, div, span, label {
             font-family: 'Noto Sans Thai', sans-serif !important;
         }
@@ -152,54 +143,50 @@ if check_login():
         .head-title { 
             font-weight: 700; color: #00ff88; text-align: center;
             text-shadow: 0 0 10px rgba(0,255,136,0.5); 
+            margin-bottom: 0px;
         }
         .section-header { 
             border-left: 5px solid #ff3e3e; padding-left: 10px; margin: 20px 0; 
             font-weight: 500; color: #ff3e3e; 
         }
 
-        /* ปรับแต่งปุ่มพื้นฐาน (ให้เริ่มต้นเป็นสีเทา) */
+        /* ปรับแต่งปุ่มพื้นฐาน (เทาเริ่มต้น) */
         div.stButton > button {
             height: 90px !important;
             border-radius: 12px !important;
             font-size: 20px !important;
             font-weight: 700 !important;
-            background-color: #31333f !important; /* สีเริ่มต้น: เทาเข้ม */
+            background-color: #31333f !important;
             color: #ffffff !important;
             border: 1px solid #464b5d !important;
             transition: all 0.3s ease !important;
         }
 
-        /* --- 1. ปุ่ม OPEN (Column 1) --- */
+        /* ปุ่มขนาดเล็กสำหรับ Logout */
+        .logout-btn button {
+            height: 35px !important;
+            font-size: 14px !important;
+            background-color: #31333f !important;
+            border: 1px solid #ff4b4b !important;
+            color: #ff4b4b !important;
+        }
+        .logout-btn button:hover {
+            background-color: #ff4b4b !important;
+            color: white !important;
+        }
+
         div[data-testid="column"]:nth-child(1) div.stButton > button:hover {
-            background-color: #22c55e !important; /* ชี้แล้วเป็นเขียวสว่าง */
-            border: none !important;
+            background-color: #22c55e !important;
             box-shadow: 0 0 15px rgba(34, 197, 94, 0.5) !important;
         }
 
-        /* --- 2. ปุ่ม CLOSE (Column 2) --- */
         div[data-testid="column"]:nth-child(2) div.stButton > button:hover {
-            background-color: #065f46 !important; /* ชี้แล้วเป็นเขียวเข้ม */
-            border: none !important;
+            background-color: #065f46 !important;
         }
 
-        /* --- 3. ปุ่มบันทึกตารางใหม่ (อยู่ใน Column ขวา) --- */
-        /* เราใช้ selector เฉพาะเจาะจงเพื่อไม่ให้ปนกับปุ่มอื่น */
-        div[data-testid="column"]:nth-child(2) div.stDataEditor + div.stButton > button {
-             background-color: #31333f !important;
-        }
-        div[data-testid="column"]:nth-child(2) div.stDataEditor + div.stButton > button:hover {
-            background-color: #3b82f6 !important; /* ชี้แล้วเป็นสีน้ำเงิน */
-            border: none !important;
-        }
-
-        /* ปุ่ม STOP - ให้แดงค้างไว้เพื่อความปลอดภัย */
+        /* ปุ่ม STOP */
         button[kind="primary"] {
             background-color: #dc2626 !important; color: white !important; border: 2px solid white !important;
-        }
-        button[kind="primary"]:hover {
-            background-color: #ff0000 !important;
-            box-shadow: 0 0 20px rgba(255, 0, 0, 0.6) !important;
         }
         
         [data-testid="stMetricLabel"] {
@@ -209,10 +196,45 @@ if check_login():
         }
        
         .streamlit-expanderHeader { font-size: 1.1rem !important; font-weight: 600 !important; }
+        
+        /* แถบสถานะด้านบน */
+        .status-bar {
+            background: #262730;
+            padding: 10px 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
         </style>
     """, unsafe_allow_html=True)
 
-    st.markdown('<h1 class="head-title">ระบบควบคุมประตูน้ำ น.ปลาปาก</h1>', unsafe_allow_html=True)
+    # --- ส่วนหัว Dashboard ใหม่ (แทนที่ Sidebar) ---
+    top_left, top_center, top_right = st.columns([1, 2, 1])
+
+    with top_left:
+        if data['online']:
+            st.success("● ระบบออนไลน์ (Firebase Connected)")
+        else:
+            st.error("○ ระบบออฟไลน์ (Connection Lost)")
+
+    with top_center:
+        st.markdown('<h1 class="head-title">ระบบควบคุมประตูน้ำ น.ปลาปาก</h1>', unsafe_allow_html=True)
+
+    with top_right:
+        r1, r2 = st.columns([1.5, 1])
+        with r1:
+            st.markdown(f"<div style='text-align: right; padding-top: 5px;'>👤 <b>{st.session_state.username}</b></div>", unsafe_allow_html=True)
+        with r2:
+            st.markdown('<div class="logout-btn">', unsafe_allow_html=True)
+            if st.button("ออกจากระบบ", key="logout_top"):
+                write_log("ออกจากระบบ")
+                st.session_state.logged_in = False
+                st.rerun()
+            st.markdown('</div>', unsafe_allow_html=True)
+
+    st.divider()
 
     # Metrics
     m1, m2, m3, m4 = st.columns(4)
@@ -281,10 +303,5 @@ if check_login():
             st.write("ดึงข้อมูลประวัติไม่ได้")
 
     # Refresh
-    time.sleep(3) 
+    time.sleep(3)
     st.rerun()
-
-
-
-
-
