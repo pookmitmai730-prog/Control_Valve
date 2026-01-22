@@ -183,6 +183,13 @@ if check_login():
         button[kind="primary"] {
             background-color: #dc2626 !important; color: white !important; border: 2px solid white !important;
         }
+        
+        /* ปรับสีหัวข้อ Metric (Label) ให้เป็นสีขาว */
+        [data-testid="stMetricLabel"] {
+            color: #ffffff !important;
+            font-size: 1.1rem !important;
+            font-weight: 500 !important;
+        }
 
         /* ปรับฟอนต์ใน Expander และ Table */
         .streamlit-expanderHeader { font-size: 1.1rem !important; font-weight: 600 !important; }
@@ -260,4 +267,5 @@ if check_login():
     # Refresh
     time.sleep(3) 
     st.rerun()
+
 
