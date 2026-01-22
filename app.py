@@ -10,7 +10,7 @@ st.set_page_config(
 import pandas as pd
 import numpy as np
 import time
-from datetime import datetime, timedelta
+from datetime import datetime
 import firebase_admin
 from firebase_admin import credentials, db
 
@@ -18,23 +18,21 @@ from firebase_admin import credentials, db
 if not firebase_admin._apps:
     try:
         fb_dict = dict(st.secrets["firebase"])
-        p_key = fb_dict["private_key"]
-        p_key = p_key.replace("\\n", "\n").strip()
+        p_key = fb_dict["private_key"].replace("\\n", "\n").strip()
         fb_dict["private_key"] = p_key
-        
         cred = credentials.Certificate(fb_dict)
         firebase_admin.initialize_app(cred, {
             'databaseURL': 'https://dbsensor-eb39d-default-rtdb.firebaseio.com'
         })
     except Exception as e:
-        st.error(f"❌ Firebase Auth Failed: {e}")
+        st.error(f"❌ Firebase Error: {e}")
         st.stop()
 
 ref = db.reference('valve_system')
 user_ref = db.reference('valve_system/users')
 log_ref = db.reference('activity_logs')
 
-# --- 3. ฟังก์ชันพื้นฐาน ---
+# --- 3. ฟังก์ชันการทำงาน ---
 def write_log(action):
     try:
         log_ref.push({
@@ -42,213 +40,191 @@ def write_log(action):
             "action": action,
             "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         })
-    except:
-        pass
+    except: pass
 
 @st.cache_data(ttl=2)
 def get_live_data():
     try:
         data = ref.get()
-        if data:
-            data['online'] = True
-            return data
-    except:
-        pass
-    return {'live_pressure': 0.0, 'valve_rotation': 0.0, 'auto_mode': True, 'motor_load': 0.0, 'online': False}
+        if data: return data
+    except: pass
+    return {'live_pressure': 0.0, 'valve_rotation': 0.0, 'auto_mode': True, 'motor_load': 0.0}
 
-# --- 4. ระบบ Login ---
-def check_login():
-    if "logged_in" not in st.session_state:
-        st.session_state.logged_in = False
-
-    if not st.session_state.logged_in:
-        st.markdown("""
-            <style>
-            @import url('https://fonts.googleapis.com/css2?family=Sarabun&display=swap');
-            .login-box {
-                background-color: #1e2124;
-                padding: 40px;
-                border-radius: 15px;
-                border: 1px solid #00ff88;
-                box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-                text-align: center;
-                font-family: 'Sarabun', sans-serif;
-            }
-            </style>
-        """, unsafe_allow_html=True)
-        
-        _, col, _ = st.columns([1, 1.2, 1])
-        with col:
-            st.markdown('<div class="login-box">', unsafe_allow_html=True)
-            st.title("🔐 เข้าสู่ระบบ")
-            user_input = st.text_input("ชื่อผู้ใช้งาน")
-            pass_input = st.text_input("รหัสผ่าน", type="password")
-            if st.button("ตกลง", use_container_width=True):
-                user_data = user_ref.child(user_input).get()
-                if user_data and user_data.get('password') == pass_input:
-                    st.session_state.logged_in = True
-                    st.session_state.username = user_input
-                    write_log("เข้าสู่ระบบ")
-                    st.rerun()
-                else:
-                    st.error("ข้อมูลไม่ถูกต้อง")
-            st.markdown('</div>', unsafe_allow_html=True)
-        return False
-    return True
-
-# --- 5. Dashboard หลัก ---
-if check_login():
-    data = get_live_data()
-
-    # CSS ตกแต่ง Dashboard (Font Sarabun + ปรับปรุงปุ่ม)
-    st.markdown("""
-        <style>
-        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Sarabun:wght@300;400;700&display=swap');
-        
-        /* พื้นหลังดำอ่อน */
-        .stApp { 
-            background-color: #161b22; 
-            color: #e6edf3; 
-            font-family: 'Sarabun', sans-serif; 
-        }
-        
-        /* หัวข้อไฮเทค */
-        .head-title { 
-            font-family: 'Orbitron'; 
-            color: #00ff88; 
-            text-align: center;
-            padding: 20px;
-            background: rgba(0,255,136,0.05);
-            border-radius: 10px;
-            margin-bottom: 25px;
-        }
-
-        /* ปรับแต่ง Metric */
-        [data-testid="stMetricValue"] { font-family: 'Orbitron'; color: #00ff88 !important; }
-
-        /* ปรับแต่งปุ่มคำสั่ง (Custom Buttons) */
-        div.stButton > button {
-            border-radius: 10px;
-            height: 3em;
-            transition: all 0.3s ease;
-            font-family: 'Sarabun', sans-serif;
-            font-weight: bold;
-            border: 1px solid rgba(255,255,255,0.1);
-        }
-        
-        /* ปุ่ม Open (สีเขียว) */
-        div[data-testid="column"]:nth-child(1) button {
-            background-color: #1d332a !important;
-            color: #00ff88 !important;
-            border: 1px solid #00ff88 !important;
-        }
-        div[data-testid="column"]:nth-child(1) button:hover {
-            box-shadow: 0 0 15px rgba(0,255,136,0.4);
-            transform: translateY(-2px);
-        }
-
-        /* ปุ่ม Close (สีฟ้า/ส้ม) */
-        div[data-testid="column"]:nth-child(2) button {
-            background-color: #21262d !important;
-            color: #58a6ff !important;
-            border: 1px solid #58a6ff !important;
-        }
-        div[data-testid="column"]:nth-child(2) button:hover {
-            box-shadow: 0 0 15px rgba(88,166,255,0.4);
-        }
-
-        /* ปุ่ม STOP (สีแดงกระพริบนิดๆ) */
-        div[data-testid="column"]:nth-child(4) button {
-            background-color: #3d1b1b !important;
-            color: #ff4d4d !important;
-            border: 2px solid #ff4d4d !important;
-            text-transform: uppercase;
-        }
-        div[data-testid="column"]:nth-child(4) button:hover {
-            background-color: #ff4d4d !important;
-            color: white !important;
-            box-shadow: 0 0 20px rgba(255,77,77,0.6);
-        }
-        
-        /* ตกแต่งตาราง */
-        .stDataFrame { background: #0d1117; border-radius: 10px; }
-        </style>
-    """, unsafe_allow_html=True)
-
-    st.markdown('<h1 class="head-title">⚙️ SYSTEM CONTROL VALVE PAPAK</h1>', unsafe_allow_html=True)
-
-    # Sidebar
-    st.sidebar.markdown(f"### 👤 ผู้ใช้งาน: **{st.session_state.username}**")
-    if st.sidebar.button("Log out"):
-        st.session_state.logged_in = False
-        st.rerun()
-    st.sidebar.divider()
-    if data.get('online'):
-        st.sidebar.success("● ระบบเชื่อมต่อออนไลน์")
-    else:
-        st.sidebar.error("○ ขาดการเชื่อมต่อ")
-
-    # ส่วนแสดงผลหลัก
-    col1, col2, col3, col4 = st.columns(4)
-    col1.metric("แรงดันอากาศ", f"{data.get('live_pressure', 0.0):.2f} BAR")
-    col2.metric("การเปิดวาล์ว", f"{data.get('valve_rotation', 0.0):.1f} %")
-    col3.metric("กระแสมอเตอร์", f"{data.get('motor_load', 0.0)} A")
-    col4.metric("เวลาเซิร์ฟเวอร์", datetime.now().strftime("%H:%M"))
-
-    st.divider()
-
-    # กราฟและตาราง
-    c1, c2 = st.columns([1.5, 1])
-    with c1:
-        st.subheader("📊 แนวโน้มแรงดัน (Real-time)")
-        if 'chart_data' not in st.session_state:
-            st.session_state.chart_data = pd.DataFrame({'Pressure': [data.get('live_pressure', 0.0)]})
-        st.line_chart(st.session_state.chart_data, color="#00ff88", height=250)
-
-    with c2:
-        st.subheader("📋 ตั้งเวลาทำงาน")
-        sched_df = pd.DataFrame(data.get('schedule', [{"TIME": "08:00", "SET": 4.0}]))
-        edited = st.data_editor(sched_df, use_container_width=True, num_rows="dynamic")
-        if st.button("Update Schedule"):
-            ref.update({'schedule': edited.to_dict('records')})
-            st.success("บันทึกตารางแล้ว")
-
-    # แผงควบคุม (Modern Style)
-    st.markdown("### 🕹️ แผงควบคุมการสั่งงาน")
-    is_auto = data.get('auto_mode', True)
+# --- 4. CSS ปรับแต่ง UI สไตล์ Gemini + ปุ่มชัดเจน ---
+st.markdown("""
+    <style>
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;700&family=Inter:wght@400;700&display=swap');
     
-    # ใช้ Toggle สวยๆ
-    new_mode = st.toggle("เปิดใช้งานโหมดอัตโนมัติ (Auto Mode)", value=is_auto)
-    if new_mode != is_auto:
-        ref.update({'auto_mode': new_mode})
-        write_log(f"เปลี่ยนเป็นโหมด {'Auto' if new_mode else 'Manual'}")
-        st.rerun()
+    /* สไตล์ตัวอักษรและพื้นหลังแบบ Gemini */
+    html, body, [class*="st-"] {
+        font-family: 'Noto Sans Thai', 'Inter', sans-serif !important;
+    }
+    
+    .stApp {
+        background-color: #131314; /* Gemini Dark Background */
+        color: #e3e3e3;
+    }
 
-    # ปุ่มคำสั่ง 4 ปุ่ม
-    ctrl1, ctrl2, ctrl3, ctrl4 = st.columns(4)
-    with ctrl1:
-        if st.button("🔼 OPEN VALVE", use_container_width=True, disabled=new_mode):
-            ref.update({'command': 'OPEN', 'last_cmd_time': str(datetime.now())})
-            write_log("สั่งเปิดวาล์ว")
-    with ctrl2:
-        if st.button("🔽 CLOSE VALVE", use_container_width=True, disabled=new_mode):
-            ref.update({'command': 'CLOSE', 'last_cmd_time': str(datetime.now())})
-            write_log("สั่งปิดวาล์ว")
-    with ctrl3:
-        st.info("Manual Mode" if not new_mode else "Auto Running...")
-    with ctrl4:
-        if st.button("🚨 EMERGENCY STOP", use_container_width=True):
-            ref.update({'command': 'STOP', 'emergency': True})
-            write_log("🚨 กดหยุดฉุกเฉิน!")
+    /* หัวข้อหน้าจอ */
+    .head-title {
+        font-family: 'Inter', sans-serif;
+        font-weight: 700;
+        color: #ffffff;
+        text-align: center;
+        padding: 30px 0;
+        letter-spacing: 1px;
+    }
 
-    # ประวัติล่าสุด
-    with st.expander("📜 ดูประวัติการสั่งงานล่าสุด"):
-        try:
-            logs = log_ref.order_by_key().limit_to_last(10).get()
-            if logs:
-                st.table(pd.DataFrame(list(logs.values())[::-1]))
-        except:
-            st.write("ยังไม่มีข้อมูล")
+    /* การ์ด Metric */
+    div[data-testid="stMetric"] {
+        background-color: #1e1f20;
+        padding: 20px;
+        border-radius: 16px;
+        border: 1px solid #444746;
+    }
 
-    time.sleep(3)
+    /* --- ปรับแต่งปุ่มสั่งงานให้ชัดเจนขึ้น --- */
+    div.stButton > button {
+        width: 100%;
+        border-radius: 12px !important;
+        height: 80px !important; /* เพิ่มความสูงปุ่ม */
+        font-size: 20px !important;
+        font-weight: 700 !important;
+        transition: all 0.2s ease;
+        border: none !important;
+        text-transform: uppercase;
+    }
+
+    /* ปุ่ม OPEN (สีเขียวนีออน) */
+    div[data-testid="column"]:nth-child(1) button {
+        background-color: #00d97e !important;
+        color: #000000 !important;
+        box-shadow: 0 4px 15px rgba(0, 217, 126, 0.4);
+    }
+    div[data-testid="column"]:nth-child(1) button:hover {
+        background-color: #00ff95 !important;
+        box-shadow: 0 0 25px rgba(0, 217, 126, 0.6);
+    }
+
+    /* ปุ่ม CLOSE (สีฟ้าสว่าง) */
+    div[data-testid="column"]:nth-child(2) button {
+        background-color: #007bff !important;
+        color: #ffffff !important;
+        box-shadow: 0 4px 15px rgba(0, 123, 255, 0.4);
+    }
+    div[data-testid="column"]:nth-child(2) button:hover {
+        background-color: #3395ff !important;
+        box-shadow: 0 0 25px rgba(0, 123, 255, 0.6);
+    }
+
+    /* ปุ่ม STOP (สีแดงเข้มข้น) */
+    div[data-testid="column"]:nth-child(4) button {
+        background-color: #ff3131 !important;
+        color: #ffffff !important;
+        box-shadow: 0 4px 20px rgba(255, 49, 49, 0.5);
+        border: 2px solid #ffffff !important;
+    }
+    div[data-testid="column"]:nth-child(4) button:hover {
+        background-color: #ff5c5c !important;
+        transform: scale(1.02);
+    }
+    
+    /* ปุ่ม Toggle */
+    .stCheckbox { font-size: 1.2rem; font-weight: 500; }
+    </style>
+""", unsafe_allow_html=True)
+
+# --- 5. ระบบ Login ---
+if "logged_in" not in st.session_state:
+    st.session_state.logged_in = False
+
+if not st.session_state.logged_in:
+    _, col, _ = st.columns([1, 1.2, 1])
+    with col:
+        st.markdown("<h2 style='text-align: center;'>🔐 เข้าสู่ระบบควบคุม</h2>", unsafe_allow_html=True)
+        u = st.text_input("ชื่อผู้ใช้")
+        p = st.text_input("รหัสผ่าน", type="password")
+        if st.button("เข้าสู่ระบบ", use_container_width=True):
+            user_data = user_ref.child(u).get()
+            if user_data and user_data.get('password') == p:
+                st.session_state.logged_in = True
+                st.session_state.username = u
+                write_log("Login")
+                st.rerun()
+            else: st.error("ข้อมูลไม่ถูกต้อง")
+    st.stop()
+
+# --- 6. Dashboard หน้าหลัก ---
+data = get_live_data()
+
+st.markdown('<h1 class="head-title">GATE VALVE MONITORING & CONTROL</h1>', unsafe_allow_html=True)
+
+# Metrics แถวบน
+m1, m2, m3, m4 = st.columns(4)
+m1.metric("ความดันระบบ", f"{data.get('live_pressure', 0.0):.2f} BAR")
+m2.metric("สถานะการเปิด", f"{data.get('valve_rotation', 0.0):.1f} REV")
+m3.metric("กระแสไฟมอเตอร์", f"{data.get('motor_load', 0.0)} A")
+m4.metric("เวลาอัปเดต", datetime.now().strftime("%H:%M:%S"))
+
+st.divider()
+
+# แผงควบคุม
+st.subheader("🕹️ แผงควบคุม (Manual Override)")
+is_auto = data.get('auto_mode', True)
+
+# แสดงสถานะโหมดปัจจุบัน
+if is_auto:
+    st.info("💡 ขณะนี้อยู่ในโหมดอัตโนมัติ (ปุ่มแมนนวลถูกปิดใช้งาน)")
+else:
+    st.warning("⚠️ ขณะนี้อยู่ในโหมดแมนนวล (คุณสามารถสั่งการวาล์วได้โดยตรง)")
+
+mode_toggle = st.toggle("เปิดใช้งานโหมดอัตโนมัติ (AUTO MODE)", value=is_auto)
+if mode_toggle != is_auto:
+    ref.update({'auto_mode': mode_toggle})
+    write_log(f"โหมด: {'Auto' if mode_toggle else 'Manual'}")
     st.rerun()
+
+st.write("") # เว้นวรรค
+
+# ปุ่มกด (4 คอลัมน์)
+ctrl1, ctrl2, ctrl3, ctrl4 = st.columns(4)
+
+with ctrl1:
+    if st.button("🔼 เปิดวาล์ว\n(OPEN)", disabled=is_auto):
+        ref.update({'command': 'OPEN'})
+        write_log("สั่งเปิดวาล์ว")
+
+with ctrl2:
+    if st.button("🔽 ปิดวาล์ว\n(CLOSE)", disabled=is_auto):
+        ref.update({'command': 'CLOSE'})
+        write_log("สั่งปิดวาล์ว")
+
+with ctrl3:
+    # แสดงสถานะแบบข้อความชัดๆ ในช่องที่ 3
+    status_text = "🟢 ระบบปกติ" if not data.get('emergency') else "🔴 หยุดฉุกเฉิน"
+    st.markdown(f"<div style='text-align:center; padding-top:20px;'><h3>{status_text}</h3></div>", unsafe_allow_html=True)
+
+with ctrl4:
+    if st.button("🚨 หยุดทันที\n(STOP)"):
+        ref.update({'command': 'STOP', 'emergency': True})
+        write_log("EMERGENCY STOP")
+
+st.divider()
+
+# ตารางและกราฟ
+c1, c2 = st.columns([1, 1])
+with c1:
+    st.subheader("📜 บันทึกกิจกรรม 5 รายการล่าสุด")
+    logs = log_ref.order_by_key().limit_to_last(5).get()
+    if logs:
+        st.table(pd.DataFrame(list(logs.values())[::-1])[['timestamp', 'action', 'user']])
+
+with c2:
+    st.subheader("⚙️ ตั้งค่าระบบ")
+    if st.button("รีเซ็ตระบบ (Clear Emergency)"):
+        ref.update({'emergency': False, 'command': 'IDLE'})
+        st.success("รีเซ็ตสถานะฉุกเฉินแล้ว")
+
+# รีเฟรชหน้าจอ
+time.sleep(3)
+st.rerun()
