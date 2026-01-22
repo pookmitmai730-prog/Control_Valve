@@ -190,28 +190,7 @@ if check_login():
             font-size: 1.1rem !important;
             font-weight: 500 !important;
         }
-        /* 1. กำหนดสีเริ่มต้นเป็นสีเทา สำหรับปุ่มในคอลัมน์ขวา (ตารางการทำงาน) */
-div[data-testid="column"]:nth-child(2) div.stButton > button {
-    background-color: #4b5563 !important; /* สีเทาเข้ม */
-    color: #e5e7eb !important;           /* ตัวอักษรขาวหม่น */
-    border: 1px solid #6b7280 !important;
-    transition: all 0.3s ease !important;
-}
-
-/* 2. เมื่อเอาเมาส์ไปชี้ (Hover) ให้เปลี่ยนเป็นสีเขียว */
-div[data-testid="column"]:nth-child(2) div.stButton > button:hover {
-    background-color: #10b981 !important; /* สีเขียวสว่าง */
-    color: white !important;
-    border: 1px solid #34d399 !important;
-    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4) !important;
-}
-
-/* 3. เมื่อมีการคลิกปุ่ม (Active) */
-div[data-testid="column"]:nth-child(2) div.stButton > button:active {
-    transform: scale(0.98);
-    background-color: #059669 !important; /* เขียวเข้มขึ้นเมื่อกด */
-}
-
+       
         /* ปรับฟอนต์ใน Expander และ Table */
         .streamlit-expanderHeader { font-size: 1.1rem !important; font-weight: 600 !important; }
         </style>
@@ -288,6 +267,7 @@ div[data-testid="column"]:nth-child(2) div.stButton > button:active {
     # Refresh
     time.sleep(3) 
     st.rerun()
+
 
 
 
