@@ -194,11 +194,23 @@ if check_login():
             font-size: 1.1rem !important;
         }
 
-        /* แก้ไข Expander ป้องกันภาพไอคอนซ้อนทับข้อความ */
+        /* --- แก้ไข Expander ป้องกันลูกศรซ้อนทับข้อความ --- */
+        /* ย้ายลูกศรไปทางขวา และเพิ่มระยะห่าง */
+        [data-testid="stExpander"] details summary {
+            flex-direction: row-reverse !important;
+            justify-content: space-between !important;
+            gap: 20px !important;
+        }
         .streamlit-expanderHeader { 
             font-size: 1.1rem !important; 
             font-weight: 600 !important; 
-            gap: 15px !important; 
+            background-color: #262730 !important;
+            border-radius: 10px !important;
+            padding: 12px 15px !important;
+        }
+        .streamlit-expanderHeader p {
+            margin: 0 !important;
+            padding-left: 10px !important;
         }
         </style>
     """, unsafe_allow_html=True)
@@ -258,9 +270,9 @@ if check_login():
             ref.update({'command': 'STOP', 'emergency': True})
             write_log("🚨 สั่งหยุดฉุกเฉิน!")
 
-    # --- ส่วนประวัติการใช้งาน ---
+    # --- ส่วนประวัติการใช้งาน (แก้ปัญหาลูกศรซ้อนแล้ว) ---
     st.divider()
-    with st.expander("📊 คลิกเพื่อดูประวัติการใช้งานล่าสุด", expanded=False):
+    with st.expander("📊 คลิกที่นี่เพื่อ [แสดง/ซ่อน] ประวัติการใช้งานล่าสุด", expanded=False):
         try:
             logs = log_ref.order_by_key().limit_to_last(8).get()
             if logs:
