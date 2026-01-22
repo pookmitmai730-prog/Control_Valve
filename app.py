@@ -2,7 +2,7 @@ import streamlit as st
 
 # --- 1. ตั้งค่าหน้ากระดาน (ต้องอยู่บรรทัดแรกสุดเสมอ) ---
 st.set_page_config(
-    page_title="GATE VALVE CONTROL SYSTEM",
+    page_title="ระบบควบคุมประตูน้ำ น.นาแก",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -151,7 +151,7 @@ if check_login():
         </style>
     """, unsafe_allow_html=True)
 
-    st.markdown('<h1 class="head-title">SYSTEM CONTROL VALVE PAPAK</h1>', unsafe_allow_html=True)
+    st.markdown('<h1 class="head-title">ระบบควบคุมประตูน้ำ น.ปลาปาก</h1>', unsafe_allow_html=True)
 
     # แสดงผลค่า Metrics
     m1, m2, m3, m4 = st.columns(4)
@@ -223,3 +223,4 @@ if check_login():
     # --- ส่วนการ Refresh หน้าจอ ---
     time.sleep(3) # รอ 3 วินาทีก่อนโหลดใหม่
     st.rerun()
+
