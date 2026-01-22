@@ -220,7 +220,7 @@ if check_login():
 
     # --- ส่วนประวัติการใช้งาน (เน้นแก้ไข CSS) ---
     st.divider()
-    with st.expander("", expanded=False):
+    with st.expander("📊 คลิกเพื่อดูประวัติการใช้งานล่าสุด", expanded=False):
         try:
             logs = log_ref.order_by_key().limit_to_last(8).get()
             if logs:
@@ -234,4 +234,5 @@ if check_login():
     # Refresh
     time.sleep(3) 
     st.rerun()
+
 
