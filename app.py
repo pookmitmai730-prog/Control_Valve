@@ -34,7 +34,7 @@ ref = db.reference('valve_system')
 user_ref = db.reference('valve_system/users')
 log_ref = db.reference('activity_logs')
 
-# --- 3. ฟังก์ชันการทำงานพื้นฐาน ---
+# --- 3. ฟังก์ชันพื้นฐาน ---
 def write_log(action):
     try:
         log_ref.push({
@@ -83,13 +83,9 @@ def check_login():
                 font-family: 'Noto Sans Thai', sans-serif !important;
             }
             .login-box {
-                background-color: rgba(30, 39, 46, 0.95);
-                padding: 50px;
-                border-radius: 20px;
-                border: 2px solid #00ff88;
-                box-shadow: 0 0 20px rgba(0, 255, 136, 0.2);
-                text-align: center;
-                color: white;
+                background-color: rgba(30, 39, 46, 0.95); padding: 50px; border-radius: 20px;
+                border: 2px solid #00ff88; box-shadow: 0 0 20px rgba(0, 255, 136, 0.2);
+                text-align: center; color: white;
             }
             </style>
         """, unsafe_allow_html=True)
@@ -100,7 +96,6 @@ def check_login():
             st.title("🔐 GATE CONTROL LOGIN")
             user_input = st.text_input("Username", key="input_u")
             pass_input = st.text_input("Password", type="password", key="input_p")
-            
             if st.button("เข้าสู่ระบบ", use_container_width=True):
                 user_data = user_ref.child(user_input).get()
                 if user_data and user_data.get('password') == pass_input:
@@ -119,20 +114,17 @@ if check_login():
     init_default_user()
     data = get_live_data()
 
-    # แถบเมนูด้านข้าง
+    # Sidebar
     st.sidebar.markdown(f"### 👤 ผู้ใช้งาน: {st.session_state.username}")
     if st.sidebar.button("ออกจากระบบ", use_container_width=True):
         write_log("ออกจากระบบ")
         st.session_state.logged_in = False
         st.rerun()
-    
     st.sidebar.divider()
-    if data['online']:
-        st.sidebar.success("● ระบบออนไลน์")
-    else:
-        st.sidebar.error("○ ระบบออฟไลน์")
+    if data['online']: st.sidebar.success("● ระบบออนไลน์")
+    else: st.sidebar.error("○ ระบบออฟไลน์")
 
-    # --- ตกแต่ง UI ด้วย CSS ---
+    # --- ตกแต่ง UI ด้วย CSS (แก้ไขจุดที่มีปัญหาซ้อนทับ) ---
     st.markdown("""
         <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;700&family=Orbitron:wght@400;700&display=swap');
@@ -142,75 +134,31 @@ if check_login():
         }
         .stApp { background: #1e1f22; color: #efefef; }
         
-        [data-testid="stMetricValue"] { 
-            font-family: 'Orbitron', sans-serif; 
-            color: #00ff88 !important; 
-            font-size: 2rem !important; 
-        }
-        .head-title { 
-            font-weight: 700; color: #00ff88; text-align: center;
-            text-shadow: 0 0 10px rgba(0,255,136,0.5); 
-        }
-        .section-header { 
-            border-left: 5px solid #ff3e3e; padding-left: 10px; margin: 20px 0; 
-            font-weight: 500; color: #ff3e3e; 
-        }
+        [data-testid="stMetricValue"] { font-family: 'Orbitron', sans-serif; color: #00ff88 !important; font-size: 2rem !important; }
+        .head-title { font-weight: 700; color: #00ff88; text-align: center; text-shadow: 0 0 10px rgba(0,255,136,0.5); }
+        .section-header { border-left: 5px solid #ff3e3e; padding-left: 10px; margin: 20px 0; font-weight: 500; color: #ff3e3e; }
 
-        /* ปรับแต่งปุ่มพื้นฐาน */
-        div.stButton > button {
-            height: 90px !important;
-            border-radius: 12px !important;
-            font-size: 20px !important;
-            font-weight: 700 !important;
-            background-color: #31333f !important;
-            color: #ffffff !important;
-            border: 1px solid #464b5d !important;
-            transition: all 0.3s ease !important;
-        }
-
-        /* Hover Effects */
-        div[data-testid="column"]:nth-child(1) div.stButton > button:hover {
-            background-color: #22c55e !important;
-            box-shadow: 0 0 15px rgba(34, 197, 94, 0.5) !important;
-        }
-        div[data-testid="column"]:nth-child(2) div.stButton > button:hover {
-            background-color: #065f46 !important;
-        }
-        div[data-testid="column"]:nth-child(2) div.stDataEditor + div.stButton > button:hover {
-            background-color: #3b82f6 !important;
-        }
-
-        /* ปุ่ม STOP */
-        button[kind="primary"] {
-            background-color: #dc2626 !important; color: white !important; border: 2px solid white !important;
-        }
-        button[kind="primary"]:hover {
-            background-color: #ff0000 !important;
-            box-shadow: 0 0 20px rgba(255, 0, 0, 0.6) !important;
-        }
+        /* ปรับแต่งปุ่ม */
+        div.stButton > button { height: 90px !important; border-radius: 12px !important; font-size: 20px !important; font-weight: 700 !important; background-color: #31333f !important; color: #ffffff !important; border: 1px solid #464b5d !important; transition: all 0.3s ease !important; }
+        div[data-testid="column"]:nth-child(1) div.stButton > button:hover { background-color: #22c55e !important; box-shadow: 0 0 15px rgba(34, 197, 94, 0.5) !important; }
+        div[data-testid="column"]:nth-child(2) div.stButton > button:hover { background-color: #065f46 !important; }
+        button[kind="primary"] { background-color: #dc2626 !important; color: white !important; border: 2px solid white !important; }
         
-        [data-testid="stMetricLabel"] {
-            color: #ffffff !important;
-            font-size: 1.1rem !important;
+        /* --- แก้ปัญหา Expander Arrow ซ้อนทับ --- */
+        [data-testid="stExpander"] details summary svg {
+            float: right !important; /* บังคับลูกศรไปขวา */
+            margin-top: 5px !important;
         }
-
-        /* --- แก้ไข Expander ป้องกันลูกศรซ้อนทับข้อความ --- */
-        /* ย้ายลูกศรไปทางขวา และเพิ่มระยะห่าง */
-        [data-testid="stExpander"] details summary {
-            flex-direction: row-reverse !important;
-            justify-content: space-between !important;
-            gap: 20px !important;
-        }
-        .streamlit-expanderHeader { 
-            font-size: 1.1rem !important; 
-            font-weight: 600 !important; 
+        .streamlit-expanderHeader {
             background-color: #262730 !important;
             border-radius: 10px !important;
-            padding: 12px 15px !important;
+            padding: 10px 40px 10px 15px !important; /* เพิ่ม padding ขวาเพื่อหลบลูกศร */
         }
         .streamlit-expanderHeader p {
-            margin: 0 !important;
-            padding-left: 10px !important;
+            font-size: 1.1rem !important;
+            font-weight: 600 !important;
+            display: inline-block !important;
+            width: 100% !important;
         }
         </style>
     """, unsafe_allow_html=True)
@@ -270,9 +218,9 @@ if check_login():
             ref.update({'command': 'STOP', 'emergency': True})
             write_log("🚨 สั่งหยุดฉุกเฉิน!")
 
-    # --- ส่วนประวัติการใช้งาน (แก้ปัญหาลูกศรซ้อนแล้ว) ---
+    # --- ส่วนประวัติการใช้งาน (เน้นแก้ไข CSS) ---
     st.divider()
-    with st.expander("📊 คลิกที่นี่เพื่อ [แสดง/ซ่อน] ประวัติการใช้งานล่าสุด", expanded=False):
+    with st.expander("📊 คลิกเพื่อดูประวัติการใช้งานล่าสุด", expanded=False):
         try:
             logs = log_ref.order_by_key().limit_to_last(8).get()
             if logs:
