@@ -133,20 +133,17 @@ if check_login():
     else:
         st.sidebar.error("○ ระบบออฟไลน์")
 
-    # --- ตกแต่ง UI ด้วย CSS ---
+    # --- ตกแต่ง UI ด้วย CSS (ปรับปรุงสลับสี Hover) ---
     st.markdown("""
         <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;700&family=Orbitron:wght@400;700&display=swap');
         
-        /* 1. บังคับใช้ฟอนต์ Noto Sans Thai ทั้งแอป */
         html, body, [class*="st-"], .stMarkdown, p, div, span, label {
             font-family: 'Noto Sans Thai', sans-serif !important;
         }
 
-        /* 2. พื้นหลังแดชบอร์ดสีเทาเข้ม */
         .stApp { background: #1e1f22; color: #efefef; }
         
-        /* 3. ตกแต่ง Metric และหัวข้อ */
         [data-testid="stMetricValue"] { 
             font-family: 'Orbitron', sans-serif; 
             color: #00ff88 !important; 
@@ -161,37 +158,56 @@ if check_login():
             font-weight: 500; color: #ff3e3e; 
         }
 
-        /* 4. ปรับแต่งปุ่ม */
+        /* ปรับแต่งปุ่มพื้นฐาน (ให้เริ่มต้นเป็นสีเทา) */
         div.stButton > button {
             height: 90px !important;
             border-radius: 12px !important;
             font-size: 20px !important;
             font-weight: 700 !important;
+            background-color: #31333f !important; /* สีเริ่มต้น: เทาเข้ม */
+            color: #ffffff !important;
+            border: 1px solid #464b5d !important;
+            transition: all 0.3s ease !important;
         }
 
-        /* สีปุ่ม OPEN - เขียวสว่าง */
-        div[data-testid="column"]:nth-child(1) button {
-            background-color: #22c55e !important; color: white !important; border: none !important;
+        /* --- 1. ปุ่ม OPEN (Column 1) --- */
+        div[data-testid="column"]:nth-child(1) div.stButton > button:hover {
+            background-color: #22c55e !important; /* ชี้แล้วเป็นเขียวสว่าง */
+            border: none !important;
+            box-shadow: 0 0 15px rgba(34, 197, 94, 0.5) !important;
         }
 
-        /* สีปุ่ม CLOSE - เขียวเข้ม */
-        div[data-testid="column"]:nth-child(2) button {
-            background-color: #065f46 !important; color: white !important; border: none !important;
+        /* --- 2. ปุ่ม CLOSE (Column 2) --- */
+        div[data-testid="column"]:nth-child(2) div.stButton > button:hover {
+            background-color: #065f46 !important; /* ชี้แล้วเป็นเขียวเข้ม */
+            border: none !important;
         }
 
-        /* สีปุ่ม STOP - แดงสด */
+        /* --- 3. ปุ่มบันทึกตารางใหม่ (อยู่ใน Column ขวา) --- */
+        /* เราใช้ selector เฉพาะเจาะจงเพื่อไม่ให้ปนกับปุ่มอื่น */
+        div[data-testid="column"]:nth-child(2) div.stDataEditor + div.stButton > button {
+             background-color: #31333f !important;
+        }
+        div[data-testid="column"]:nth-child(2) div.stDataEditor + div.stButton > button:hover {
+            background-color: #3b82f6 !important; /* ชี้แล้วเป็นสีน้ำเงิน */
+            border: none !important;
+        }
+
+        /* ปุ่ม STOP - ให้แดงค้างไว้เพื่อความปลอดภัย */
         button[kind="primary"] {
             background-color: #dc2626 !important; color: white !important; border: 2px solid white !important;
         }
+        button[kind="primary"]:hover {
+            background-color: #ff0000 !important;
+            box-shadow: 0 0 20px rgba(255, 0, 0, 0.6) !important;
+        }
         
-        /* ปรับสีหัวข้อ Metric (Label) ให้เป็นสีขาว */
         [data-testid="stMetricLabel"] {
             color: #ffffff !important;
             font-size: 1.1rem !important;
             font-weight: 500 !important;
         }
        
-        /* ปรับฟอนต์ใน Expander และ Table */
         .streamlit-expanderHeader { font-size: 1.1rem !important; font-weight: 600 !important; }
         </style>
     """, unsafe_allow_html=True)
@@ -267,6 +283,7 @@ if check_login():
     # Refresh
     time.sleep(3) 
     st.rerun()
+
 
 
 
