@@ -184,9 +184,9 @@ if check_login():
 
    # --- 5. DASHBOARD METRICS ---
     m1, m2, m3, m4 = st.columns(4)
-    with m1: st.metric("แรงดันขณะนี้", f"{firebase_data.get('live_pressure', 0.0):.2f} BAR")
-    with m2: st.metric("รอบการหมุนวาล์ว", f"{firebase_data.get('valve_rotation', 0.0):.1f} REV")
-    with m3: st.metric("ภาระโหลดมอเตอร์", f"{firebase_data.get('motor_load', 0.0)} A")
+    with m1: st.metric("แรงดันขณะนี้", f"{firebase_data.get('live_pressure', 0.0):.2f} บาร์")
+    with m2: st.metric("รอบการหมุนวาล์ว", f"{firebase_data.get('valve_rotation', 0.0):.1f} รอบ")
+    with m3: st.metric("ภาระโหลดมอเตอร์", f"{firebase_data.get('motor_load', 0.0)} แอมป์")
     with m4: st.metric("เวลาปัจจุบัน (ไทย)", now_th.strftime("%H:%M:%S"))
 
     # Content Columns
@@ -261,6 +261,7 @@ if check_login():
     # Auto Refresh System
     time.sleep(5) 
     st.rerun()
+
 
 
 
