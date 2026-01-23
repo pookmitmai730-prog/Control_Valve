@@ -184,7 +184,7 @@ if check_login():
 
     # Metrics
     m1, m2, m3, m4 = st.columns(4)
-    with m1: st.metric("แรงดันขณะนี้", f"{firebase_data.get('live_pressure', 0.0):.2f} บาร์")
+    with m1: st.metric("แรงดันน้ำขณะนี้", f"{firebase_data.get('live_pressure', 0.0):.2f} บาร์")
     with m2: st.metric("รอบการหมุนวาล์ว", f"{firebase_data.get('valve_rotation', 0.0):.1f} รอบ")
     with m3: st.metric("ภาระโหลดมอเตอร์", f"{firebase_data.get('motor_load', 0.0)} แอมป์")
     with m4: st.metric("เวลาปัจจุบัน (ไทย)", now_th.strftime("%H:%M:%S"))
@@ -274,5 +274,6 @@ if check_login():
 
     time.sleep(5) 
     st.rerun()
+
 
 
