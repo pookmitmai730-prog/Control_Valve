@@ -132,8 +132,8 @@ if check_login():
     st.sidebar.markdown("🔗 **ลิงก์ข้อมูลเพิ่มเติม**")
     
     # ใส่ลิงก์ที่คุณต้องการตรงนี้ (เปลี่ยน URL ในเครื่องหมายวงเล็บ)
-    st.sidebar.markdown("- [ข้อมูลถังน้ำใสเรณู](https://your-link-1.com)")
-    st.sidebar.markdown("- [ข้อมูล P3 นาป่งครอง น.นาแก](https://your-link-2.com)")
+    st.sidebar.markdown("- [ข้อมูลถังน้ำใสเรณู](https://water-aimonitor-leak.onrender.com/showWater)")
+    st.sidebar.markdown("- [ข้อมูล P3 นาป่งครอง น.นาแก](https://water-aimonitor-leak.onrender.com/)")
     st.sidebar.markdown("---")
 
     if st.sidebar.button("Logout", use_container_width=True):
@@ -252,4 +252,5 @@ if check_login():
 
     time.sleep(5) # ปรับเวลา Refresh ให้เหมาะสมกับการรันบนเว็บ
     st.rerun()
+
 
