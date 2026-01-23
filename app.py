@@ -180,7 +180,7 @@ if check_login():
         st.rerun()
 
     # --- MAIN CONTENT ---
-    st.markdown('<h1 style="font-family:\'Orbitron\', \'Noto Sans Thai\'; text-shadow: 0 0 10px #00ff88;">ระบบควบคุมประตูน้ำออนไลน์ น.ปลาปาก</h1>', unsafe_allow_html=True)
+    st.markdown('<h1 style="font-family:\'Orbitron\', \'Noto Sans Thai\'; text-shadow: 0 0 10px #00ff88;">ระบบควบคุมประตูน้ำแบบเรลไทม์ น.ปลาปาก</h1>', unsafe_allow_html=True)
 
     # Metrics
     m1, m2, m3, m4 = st.columns(4)
@@ -274,4 +274,5 @@ if check_login():
 
     time.sleep(5) 
     st.rerun()
+
 
