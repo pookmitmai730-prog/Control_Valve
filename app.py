@@ -110,49 +110,51 @@ if check_login():
     firebase_data = get_safe_data()
     now_th = get_now()
 
-    # --- CSS STYLING (GLOBAL, NOTO SANS THAI & SIDEBAR BLACK TEXT) ---
+    # --- CSS STYLING (THEME & FONT FIX) ---
     st.markdown("""
         <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;700&family=Orbitron:wght@400;700&family=Rajdhani:wght@300;500;700&display=swap');
         
-        /* ตั้งค่าฟอนต์หลัก: ใช้ Noto Sans Thai สำหรับภาษาไทย และ Rajdhani สำหรับอังกฤษ */
+        /* 1. Global Font: ใช้ภาษาอังกฤษนำหน้าเพื่อคงสภาพ Emoji/Icons */
         html, body, [class*="st-"], .stMarkdown, p, div {
-            font-family: 'Noto Sans Thai', 'Rajdhani', sans-serif;
+            font-family: 'Rajdhani', 'Noto Sans Thai', 'Segoe UI Emoji', sans-serif;
         }
 
-        /* พื้นหลังหน้าจอหลัก */
+        /* 2. Main Theme */
         .stApp { background: radial-gradient(circle, #1a1f25 0%, #0d0f12 100%); color: #e0e0e0; }
         
-        /* บังคับตัวหนังสือและลิงก์ใน Sidebar เป็นสีดำ */
+        /* 3. Sidebar Customization (Black Text & Noto Sans Thai) */
         [data-testid="stSidebar"] .stMarkdown, 
         [data-testid="stSidebar"] p, 
         [data-testid="stSidebar"] strong, 
-        [data-testid="stSidebar"] span {
+        [data-testid="stSidebar"] span,
+        [data-testid="stSidebar"] label {
             color: #000000 !important;
-            font-family: 'Noto Sans Thai', sans-serif !important;
+            font-family: 'Noto Sans Thai', 'Segoe UI Emoji', sans-serif !important;
         }
         [data-testid="stSidebar"] a { 
             color: #000000 !important; 
             text-decoration: underline; 
             font-weight: bold; 
         }
-        [data-testid="stSidebar"] a:hover { 
-            color: #444444 !important; 
-            text-shadow: none !important;
-        }
         
-        /* Metric Styling: ให้ตัวเลขเป็น Orbitron */
+        /* 4. Metric & UI Elements */
         div[data-testid="stVerticalBlock"] > div:has(div.stMetric) { background: rgba(30, 39, 46, 0.7); border-left: 4px solid #00ff88; padding: 15px; }
         [data-testid="stMetricValue"] { font-family: 'Orbitron', sans-serif !important; color: #00ff88 !important; }
         [data-testid="stMetricLabel"] { font-family: 'Noto Sans Thai', sans-serif !important; }
         
-        /* Headers & Buttons */
+        /* 5. Buttons Styling (Restore Emoji Support) */
+        .stButton>button { 
+            background: linear-gradient(135deg, #1e272e 0%, #2f3640 100%) !important; 
+            color: #00ff88 !important; 
+            border: 1px solid #00ff88 !important; 
+            font-family: 'Segoe UI Emoji', 'Orbitron', 'Noto Sans Thai', sans-serif !important; 
+        }
         .section-head-red { border-bottom: 1px solid #333; color: #ff3e3e; font-family: 'Orbitron', 'Noto Sans Thai'; font-size: 1.1rem; margin-bottom: 10px;}
-        .stButton>button { background: linear-gradient(135deg, #1e272e 0%, #2f3640 100%) !important; color: #00ff88 !important; border: 1px solid #00ff88 !important; font-family: 'Orbitron', 'Noto Sans Thai'; }
         </style>
         """, unsafe_allow_html=True)
 
-    # --- SIDEBAR & LINKS (ตัวหนังสือจะเป็นสีดำ + ฟอนต์ Noto Sans Thai) ---
+    # --- SIDEBAR & LINKS ---
     st.sidebar.markdown(f"### 👤 ผู้ใช้งาน: {st.session_state.username}")
     
     if not firebase_data['online']:
@@ -166,21 +168,21 @@ if check_login():
     st.sidebar.markdown("- [ข้อมูล P3 นาป่งครอง น.นาแก](https://water-aimonitor-leak.onrender.com/)")
     st.sidebar.markdown("---")
 
-    if st.sidebar.button("Logout", use_container_width=True):
+    if st.sidebar.button("ออกจากระบบ (Logout)", use_container_width=True):
         st.session_state.logged_in = False
         st.rerun()
 
     # --- MAIN CONTENT ---
     st.markdown('<h1 style="font-family:\'Orbitron\', \'Noto Sans Thai\'; text-shadow: 0 0 10px #00ff88;">SYSTEM CONTROL VALVE PAPAK</h1>', unsafe_allow_html=True)
 
-    # Metrics
+    # Dashboard Metrics
     m1, m2, m3, m4 = st.columns(4)
     with m1: st.metric("Live Pressure", f"{firebase_data.get('live_pressure', 0.0):.2f} BAR")
     with m2: st.metric("Valve Rotation", f"{firebase_data.get('valve_rotation', 0.0):.1f} REV")
     with m3: st.metric("Motor Load", f"{firebase_data.get('motor_load', 0.0)} A")
     with m4: st.metric("System Time (TH)", now_th.strftime("%H:%M:%S"))
 
-    # Trend & Schedule
+    # Content Columns
     col_left, col_right = st.columns([1.5, 1])
     
     with col_left:
@@ -204,7 +206,7 @@ if check_login():
             except:
                 st.error("❌ บันทึกล้มเหลว!")
 
-    # Manual Controls
+    # Manual Control Panel
     st.markdown('### 🛠️ MANUAL OVERRIDE (ควบคุมด้วยตนเอง)')
     mode_remote = firebase_data.get('auto_mode', True)
     ctrl_1, ctrl_2, ctrl_3, ctrl_4 = st.columns([1, 1, 1, 1])
@@ -239,7 +241,7 @@ if check_login():
                 st.error("ส่งคำสั่งหยุดฉุกเฉินแล้ว")
             except: pass
 
-    # Logs
+    # Activity Logs
     st.markdown("---")
     st.markdown("### 📜 RECENT ACTIVITY LOGS (ประวัติกิจกรรม)")
     try:
@@ -249,6 +251,6 @@ if check_login():
             st.table(pd.DataFrame(log_list))
     except: pass
 
-    # Auto Refresh
+    # Auto Refresh System
     time.sleep(5) 
     st.rerun()
