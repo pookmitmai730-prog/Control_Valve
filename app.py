@@ -43,6 +43,7 @@ def write_log(action):
     try:
         log_ref.push({
             "user": st.session_state.get('username', 'Unknown'),
+            "role": st.session_state.get('user_role', 'Unknown'),
             "action": action,
             "timestamp": get_now().strftime("%Y-%m-%d %H:%M:%S")
         })
@@ -94,6 +95,7 @@ def check_login():
                 if user_data and user_data.get('password') == p:
                     st.session_state.logged_in = True
                     st.session_state.username = u
+                    st.session_state.user_role = user_data.get('role', 'user') # เก็บ Role
                     write_log("User Logged In")
                     st.rerun()
                 else:
@@ -109,62 +111,49 @@ init_default_user()
 if check_login():
     firebase_data = get_safe_data()
     now_th = get_now()
+    
+    # ตรวจสอบสิทธิ์ว่าเป็น Super Admin หรือไม่
+    is_super_admin = st.session_state.get('user_role') == "super_admin"
 
-    # --- CSS STYLING (FIX: Fonts, Metric Colors & Arrows) ---
+    # --- CSS STYLING ---
     st.markdown("""
         <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;600;700&family=Orbitron:wght@400;700&family=Rajdhani:wght@400;600;700&display=swap');
-        
-        /* 1. คืนค่าไอคอนลูกศร (SVG) และสัญลักษณ์ระบบให้เป็นกราฟิกปกติ */
         svg, [data-testid="stSidebarNav"] svg, [data-testid="collapsedControl"] svg {
             display: inline-block !important;
             fill: currentColor !important;
             color: inherit !important;
         }
-
-        /* 2. Global Fonts (จัดลำดับเพื่อไม่ให้ทับ Emoji และ Icon ระบบ) */
         html, body, .stMarkdown p, .stMarkdown span, label {
             font-family: 'Rajdhani', 'Noto Sans Thai', sans-serif !important;
         }
-
-        /* 3. ปรับแต่งหัวข้อ Metric ให้เป็นสีขาวเข้มคมชัด (Pure White) */
         [data-testid="stMetricLabel"] p {
             color: #FFFFFF !important;
             font-family: 'Noto Sans Thai', sans-serif !important;
             font-size: 1.15rem !important;
             font-weight: 600 !important;
             opacity: 1 !important;
-            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
         }
-
-        /* 4. ปรับแต่งตัวเลข Metric (สีเขียวนีออน) */
         [data-testid="stMetricValue"] {
             color: #00ff88 !important;
             font-family: 'Orbitron', sans-serif !important;
         }
-
-        /* 5. Sidebar: ตัวหนังสือสีดำ และฟอนต์ไทย */
-        [data-testid="stSidebar"] .stMarkdown p, 
-        [data-testid="stSidebar"] .stMarkdown span,
-        [data-testid="stSidebar"] strong {
+        [data-testid="stSidebar"] .stMarkdown p, [data-testid="stSidebar"] strong {
             color: #000000 !important;
             font-family: 'Noto Sans Thai', sans-serif !important;
         }
-        
-        /* แก้สีลูกศรใน Sidebar ให้ชัดเจน */
-        [data-testid="stSidebar"] button[kind="header"] {
-            color: #000000 !important;
-        }
-
-        /* 6. ปุ่มควบคุม (องรับ Emoji 🔼 🔽 🚨) */
         .stButton>button { 
             background: linear-gradient(135deg, #1e272e 0%, #2f3640 100%) !important; 
             color: #00ff88 !important; 
             border: 1px solid #00ff88 !important; 
             font-family: 'Segoe UI Emoji', 'Orbitron', 'Noto Sans Thai', sans-serif !important; 
         }
-
-        /* Theme พื้นหลัง */
+        /* ปรับสีปุ่มที่โดน Disable ให้ดูจางลง */
+        .stButton>button:disabled {
+            color: #444444 !important;
+            border-color: #444444 !important;
+            background: #1a1a1a !important;
+        }
         .stApp { background: radial-gradient(circle, #1a1f25 0%, #0d0f12 100%); color: #e0e0e0; }
         [data-testid="stSidebar"] a { color: #000000 !important; text-decoration: underline; font-weight: bold; }
         .section-head-red { border-bottom: 1px solid #333; color: #ff3e3e; font-family: 'Orbitron', 'Noto Sans Thai'; font-size: 1.1rem; margin-bottom: 10px;}
@@ -173,6 +162,7 @@ if check_login():
 
     # --- SIDEBAR & LINKS ---
     st.sidebar.markdown(f"### 👤 ผู้ใช้งาน: {st.session_state.username}")
+    st.sidebar.markdown(f"**สถานะสิทธิ์:** {'🟢 ผู้ดูแลระบบ' if is_super_admin else '🟡 ผู้ชมทั่วไป'}")
     
     if not firebase_data['online']:
         st.sidebar.warning("⚠️ โหมดออฟไลน์ (Offline)")
@@ -192,14 +182,13 @@ if check_login():
     # --- MAIN CONTENT ---
     st.markdown('<h1 style="font-family:\'Orbitron\', \'Noto Sans Thai\'; text-shadow: 0 0 10px #00ff88;">ระบบควบคุมประตูน้ำ น.ปลาปาก</h1>', unsafe_allow_html=True)
 
-    # --- 5. DASHBOARD METRICS ---
+    # Metrics
     m1, m2, m3, m4 = st.columns(4)
     with m1: st.metric("แรงดันขณะนี้", f"{firebase_data.get('live_pressure', 0.0):.2f} บาร์")
     with m2: st.metric("รอบการหมุนวาล์ว", f"{firebase_data.get('valve_rotation', 0.0):.1f} รอบ")
     with m3: st.metric("ภาระโหลดมอเตอร์", f"{firebase_data.get('motor_load', 0.0)} แอมป์")
     with m4: st.metric("เวลาปัจจุบัน (ไทย)", now_th.strftime("%H:%M:%S"))
 
-    # Content Columns
     col_left, col_right = st.columns([1.5, 1])
     
     with col_left:
@@ -211,54 +200,69 @@ if check_login():
 
     with col_right:
         st.markdown('### 📋 SCHEDULE SETTING (ตั้งค่าเวลา)')
+        # ถ้าไม่ใช่ super_admin จะแก้ไขตารางไม่ได้ (disabled)
         schedule_raw = firebase_data.get('schedule', [{"START_TIME": "00:00", "TARGET": 0.0}])
         current_schedule = pd.DataFrame(schedule_raw)
-        edited_df = st.data_editor(current_schedule, use_container_width=True, num_rows="dynamic")
+        edited_df = st.data_editor(
+            current_schedule, 
+            use_container_width=True, 
+            num_rows="dynamic", 
+            disabled=not is_super_admin  # สั่งปิดการแก้ไขถ้าไม่ใช่ admin
+        )
         
-        if st.button("Apply & Sync to Firebase", use_container_width=True):
+        # ปุ่มบันทึกจะกดได้เฉพาะ super_admin
+        if st.button("Apply & Sync to Firebase", use_container_width=True, disabled=not is_super_admin):
             try:
                 ref.update({'schedule': edited_df.to_dict('records')})
                 write_log("Updated Schedule Configuration")
                 st.success("✅ บันทึกข้อมูลสำเร็จ!")
             except:
                 st.error("❌ บันทึกล้มเหลว!")
+        if not is_super_admin:
+            st.caption("🔒 คุณไม่มีสิทธิ์ในการแก้ไขการตั้งค่าเวลา")
 
     # Manual Control Panel
     st.markdown('### 🛠️ MANUAL OVERRIDE (ควบคุมด้วยตนเอง)')
+    if not is_super_admin:
+        st.info("ℹ️ เฉพาะผู้ดูแลระบบ (Super Admin) เท่านั้นที่สามารถควบคุมประตูน้ำได้")
+
     mode_remote = firebase_data.get('auto_mode', True)
     ctrl_1, ctrl_2, ctrl_3, ctrl_4 = st.columns([1, 1, 1, 1])
 
     with ctrl_3:
-        is_auto = st.toggle("Auto Mode (โหมดอัตโนมัติ)", value=mode_remote)
-        if is_auto != mode_remote:
+        # Toggle จะถูกปิดถ้าไม่ใช่ super_admin
+        is_auto = st.toggle("Auto Mode (โหมดอัตโนมัติ)", value=mode_remote, disabled=not is_super_admin)
+        if is_super_admin and is_auto != mode_remote:
             try:
                 ref.update({'auto_mode': is_auto})
                 write_log(f"Auto Mode set to {is_auto}")
             except: pass
 
     with ctrl_1:
-        if st.button("🔼 Open Valve (เปิด)", use_container_width=True, disabled=is_auto):
+        # ปุ่ม Open จะทำงานเฉพาะ admin และต้องไม่อยู่ในโหมด auto
+        if st.button("🔼 Open Valve (เปิด)", use_container_width=True, disabled=(not is_super_admin or is_auto)):
             try:
                 ref.update({'command': 'OPEN', 'last_command_time': now_th.strftime("%Y-%m-%d %H:%M:%S")})
                 write_log("Manual Command: OPEN")
             except: pass
 
     with ctrl_2:
-        if st.button("🔽 Close Valve (ปิด)", use_container_width=True, disabled=is_auto):
+        if st.button("🔽 Close Valve (ปิด)", use_container_width=True, disabled=(not is_super_admin or is_auto)):
             try:
                 ref.update({'command': 'CLOSE', 'last_command_time': now_th.strftime("%Y-%m-%d %H:%M:%S")})
                 write_log("Manual Command: CLOSE")
             except: pass
 
     with ctrl_4:
-        if st.button("🚨 Emergency Stop (หยุด)", type="primary", use_container_width=True):
+        # Emergency Stop ควรให้เฉพาะ admin กดเช่นกัน เพื่อป้องกันการกลั่นแกล้ง
+        if st.button("🚨 Emergency Stop (หยุด)", type="primary", use_container_width=True, disabled=not is_super_admin):
             try:
                 ref.update({'command': 'STOP', 'emergency': True})
                 write_log("EMERGENCY STOP")
                 st.error("ส่งคำสั่งหยุดฉุกเฉินแล้ว")
             except: pass
 
-    # Activity Logs
+    # Logs
     st.markdown("---")
     st.markdown("### 📜 RECENT ACTIVITY LOGS (ประวัติกิจกรรม)")
     try:
@@ -268,6 +272,5 @@ if check_login():
             st.table(pd.DataFrame(log_list))
     except: pass
 
-    # Auto Refresh System
     time.sleep(5) 
     st.rerun()
