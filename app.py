@@ -112,23 +112,52 @@ def get_safe_data():
         return st.session_state.cached_data
 
 # --- เริ่มการทำงานหลัก ---
-# หมายเหตุ: st.set_page_config ต้องอยู่บรรทัดแรกๆ ของสคริปต์
 st.set_page_config(page_title="GATE VALVE CONTROL", layout="wide")
 
 if check_login():
     firebase_data = get_safe_data()
     now_th = get_now()
 
-    # Sidebar
+    # --- Sidebar ---
     st.sidebar.markdown(f"### 👤 User: {st.session_state.username}")
-    if st.sidebar.button("Logout"):
-        st.session_state.logged_in = False
-        st.rerun()
     
+    # แสดงสถานะ Online/Offline
     if not firebase_data['online']:
-        st.warning("⚠️ Offline Mode: แสดงค่าล่าสุดจากหน่วยความจำ")
+        st.sidebar.warning("⚠️ Offline Mode")
     else:
         st.sidebar.success("● System Online")
+    
+    # --- เพิ่มลิงก์ข้อมูลเพิ่มเติมใต้ System Online ---
+    st.sidebar.markdown("---") # เส้นคั่น
+    st.sidebar.markdown("🔗 **ลิงก์ข้อมูลเพิ่มเติม**")
+    
+    # ใส่ลิงก์ที่คุณต้องการตรงนี้ (เปลี่ยน URL ในเครื่องหมายวงเล็บ)
+    st.sidebar.markdown("- [ข้อมูลถังน้ำใสเรณู](https://your-link-1.com)")
+    st.sidebar.markdown("- [ข้อมูล P3 นาป่งครอง น.นาแก](https://your-link-2.com)")
+    st.sidebar.markdown("---")
+
+    if st.sidebar.button("Logout", use_container_width=True):
+        st.session_state.logged_in = False
+        st.rerun()
+
+    # --- ส่วน CSS และเนื้อหาหลักอื่นๆ (เหมือนเดิม) ---
+    st.markdown("""
+        <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Rajdhani:wght@300;500;700&display=swap');
+        .stApp { background: radial-gradient(circle, #1a1f25 0%, #0d0f12 100%); color: #e0e0e0; font-family: 'Rajdhani', sans-serif; }
+        /* ตกแต่งลิงก์ใน Sidebar ให้เป็นสีเขียว Neon เข้ากับ Theme */
+        [data-testid="stSidebar"] a {
+            color: #00ff88 !important;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        [data-testid="stSidebar"] a:hover {
+            text-shadow: 0 0 10px #00ff88;
+        }
+        </style>
+        """, unsafe_allow_html=True)
+    
+    # ... (ส่วนที่เหลือของโค้ดคุณใช้ตัวเดิมได้เลย) ...
 
     # --- CSS Styling ---
     st.markdown("""
@@ -223,3 +252,4 @@ if check_login():
 
     time.sleep(5) # ปรับเวลา Refresh ให้เหมาะสมกับการรันบนเว็บ
     st.rerun()
+
