@@ -2,53 +2,67 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import time
-import pytz  # สำหรับจัดการเวลาประเทศไทย
+import pytz
 from datetime import datetime, timedelta
 import firebase_admin
 from firebase_admin import credentials, db
 
-# --- 0. ตั้งค่า Timezone ---
-local_tz = pytz.timezone('Asia/Bangkok')
+# --- 1. สำหรับ iOS: ต้องอยู่บนสุดและต้องกำหนดขอบเขตหน้าจอ ---
+st.set_page_config(
+    page_title="GATE VALVE CONTROL", 
+    layout="wide", 
+    initial_sidebar_state="collapsed"
+)
 
-def get_now():
-    """ดึงเวลาปัจจุบันเป็นเวลาไทย"""
-    return datetime.now(local_tz)
+# --- CSS พิเศษสำหรับ iOS และ Mobile ---
+st.markdown("""
+    <style>
+    /* บังคับ viewport ให้พอดีมือถือ */
+    @viewport { width: device-width; zoom: 1.0; }
+    
+    /* ปรับแต่งปุ่มให้กดง่ายขึ้นบนนิ้วมือ (iOS Touch) */
+    .stButton>button {
+        min-height: 55px !important;
+        border-radius: 10px !important;
+        touch-action: manipulation;
+    }
+    
+    /* ป้องกันตัวหนังสือ Metric เล็กเกินไปบน iPhone */
+    [data-testid="stMetricValue"] {
+        font-size: 1.5rem !important;
+    }
+    
+    /* ซ่อนขอบที่อาจทำให้ต้องเลื่อนซ้ายขวาบน Safari */
+    .main .block-container {
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+    </style>
+    """, unsafe_allow_html=True)
 
-# --- 1. ตั้งค่า Firebase (ปรับปรุงเพื่อรันบนเว็บ streamlit.io) ---
+# --- 2. การเชื่อมต่อ Firebase (เหมือนเดิม) ---
 if not firebase_admin._apps:
     try:
-        # ดึงข้อมูลจาก st.secrets แทนการเรียกไฟล์ตรงๆ
         fb_dict = dict(st.secrets["firebase"])
-        # แก้ไขปัญหาเรื่องการขึ้นบรรทัดใหม่ในรหัส Private Key
         fb_dict["private_key"] = fb_dict["private_key"].replace("\\n", "\n")
-        
         cred = credentials.Certificate(fb_dict)
         firebase_admin.initialize_app(cred, {
             'databaseURL': 'https://dbsensor-eb39d-default-rtdb.firebaseio.com'
         })
     except Exception as e:
-        st.error(f"❌ Firebase Connection Error: {e}")
+        st.error(f"Firebase Config Error: {e}")
         st.stop()
 
-# อ้างอิง Node หลัก
+# อ้างอิง Node
 ref = db.reference('valve_system')
 user_ref = db.reference('valve_system/users')
 log_ref = db.reference('activity_logs')
+local_tz = pytz.timezone('Asia/Bangkok')
 
-# --- 2. ฟังก์ชัน Initialize User ---
-def init_default_user():
-    try:
-        users = user_ref.get()
-        if users is None:
-            user_ref.child('admin').set({
-                'password': 'papak123',
-                'role': 'super_admin'
-            })
-    except: pass
+def get_now():
+    return datetime.now(local_tz)
 
-init_default_user()
-
-# --- 3. ฟังก์ชันบันทึกประวัติ (ใช้เวลาไทย) ---
+# --- 3. ฟังก์ชันบันทึก Log ---
 def write_log(action):
     try:
         log_ref.push({
@@ -58,168 +72,81 @@ def write_log(action):
         })
     except: pass
 
-# --- 4. ฟังก์ชันระบบ Login ---
+# --- 4. ระบบ Login ---
 def check_login():
     if "logged_in" not in st.session_state:
         st.session_state.logged_in = False
 
     if not st.session_state.logged_in:
-        st.markdown("""
-            <style>
-            .login-container {
-                background-color: rgba(30, 39, 46, 0.9);
-                padding: 40px; border-radius: 15px;
-                border: 1px solid #00ff88; text-align: center;
-                margin-top: 50px;
-            }
-            </style>
-        """, unsafe_allow_html=True)
-        
-        _, col2, _ = st.columns([1, 1.2, 1])
+        _, col2, _ = st.columns([0.1, 1, 0.1])
         with col2:
-            st.markdown('<div class="login-container">', unsafe_allow_html=True)
-            st.title("🔐 GATE CONTROL")
-            u = st.text_input("Username", key="login_u")
-            p = st.text_input("Password", type="password", key="login_p")
-            if st.button("Login", use_container_width=True):
+            st.title("🔐 LOGIN")
+            u = st.text_input("Username", key="u_ios")
+            p = st.text_input("Password", type="password", key="p_ios")
+            if st.button("เข้าสู่ระบบ", use_container_width=True):
                 user_data = user_ref.child(u).get()
                 if user_data and user_data.get('password') == p:
                     st.session_state.logged_in = True
                     st.session_state.username = u
-                    write_log("User Logged In")
+                    write_log("Logged in via Mobile")
                     st.rerun()
                 else:
-                    st.error("Invalid Username or Password")
-            st.markdown('</div>', unsafe_allow_html=True)
+                    st.error("Login Failed")
         return False
     return True
 
-# --- 5. ฟังก์ชันดึงข้อมูลแบบ Safety ---
-def get_safe_data():
-    if 'cached_data' not in st.session_state:
-        st.session_state.cached_data = {
-            'live_pressure': 0.0, 'valve_rotation': 0.0, 'auto_mode': True,
-            'motor_load': 0.0, 'schedule': [], 'online': False
-        }
-    try:
-        data = ref.get()
-        if data:
-            st.session_state.cached_data.update(data)
-            st.session_state.cached_data['online'] = True
-        return st.session_state.cached_data
-    except:
-        st.session_state.cached_data['online'] = False
-        return st.session_state.cached_data
-
 # --- เริ่มการทำงานหลัก ---
-# หมายเหตุ: st.set_page_config ต้องอยู่บรรทัดแรกๆ ของสคริปต์
-st.set_page_config(page_title="GATE VALVE CONTROL", layout="wide")
-
 if check_login():
-    firebase_data = get_safe_data()
-    now_th = get_now()
-
-    # Sidebar
-    st.sidebar.markdown(f"### 👤 User: {st.session_state.username}")
-    if st.sidebar.button("Logout"):
-        st.session_state.logged_in = False
-        st.rerun()
+    # สร้าง Container เพื่อให้ iOS ไม่ต้องโหลดหน้าใหม่ทั้งหมด
+    placeholder = st.empty()
     
-    if not firebase_data['online']:
-        st.warning("⚠️ Offline Mode: แสดงค่าล่าสุดจากหน่วยความจำ")
-    else:
-        st.sidebar.success("● System Online")
+    with placeholder.container():
+        # ดึงข้อมูล
+        data = ref.get() or {}
+        now_th = get_now()
 
-    # --- CSS Styling ---
-    st.markdown("""
-        <style>
-        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Rajdhani:wght@300;500;700&display=swap');
-        .stApp { background: radial-gradient(circle, #1a1f25 0%, #0d0f12 100%); color: #e0e0e0; font-family: 'Rajdhani', sans-serif; }
-        div[data-testid="stVerticalBlock"] > div:has(div.stMetric) { background: rgba(30, 39, 46, 0.7); border-left: 4px solid #00ff88; padding: 15px; }
-        [data-testid="stMetricValue"] { font-family: 'Orbitron', sans-serif; color: #00ff88 !important; }
-        .section-head-red { border-bottom: 1px solid #333; color: #ff3e3e; font-family: 'Orbitron'; font-size: 1.1rem; }
-        .stButton>button { background: linear-gradient(135deg, #1e272e 0%, #2f3640 100%) !important; color: #00ff88 !important; border: 1px solid #00ff88 !important; font-family: 'Orbitron'; }
-        </style>
-        """, unsafe_allow_html=True)
-
-    st.markdown('<h1 style="font-family:\'Orbitron\'; text-shadow: 0 0 10px #00ff88;">SYSTEM CONTROL VALVE PAPAK</h1>', unsafe_allow_html=True)
-
-    # --- Metrics (แสดงเวลาไทย) ---
-    c1, c2, c3, c4 = st.columns(4)
-    with c1: st.metric("Live Pressure", f"{firebase_data.get('live_pressure', 0.0):.2f} BAR")
-    with c2: st.metric("Valve Rotation", f"{firebase_data.get('valve_rotation', 0.0):.1f} REV")
-    with c3: st.metric("Motor Load", f"{firebase_data.get('motor_load', 0.0)} A")
-    with c4: st.metric("System Time (TH)", now_th.strftime("%H:%M:%S"))
-
-    # --- Main Content ---
-    col_left, col_right = st.columns([1.5, 1])
-    
-    with col_left:
-        st.markdown('<div class="section-head-red">🚨 PRESSURE TREND</div>', unsafe_allow_html=True)
-        if 'history_df' not in st.session_state:
-            # สร้างข้อมูลจำลองอิงตามเวลาไทย
-            time_index = pd.date_range(start=now_th-timedelta(days=3), end=now_th, freq='1H')
-            st.session_state.history_df = pd.DataFrame({'Pressure': np.random.uniform(3.5, 4.5, size=len(time_index))}, index=time_index)
-        st.line_chart(st.session_state.history_df, color="#ff3e3e", height=250)
-
-    with col_right:
-        st.markdown('### 📋 SCHEDULE SETTING')
-        schedule_raw = firebase_data.get('schedule', [{"START_TIME": "00:00", "TARGET": 0.0}])
-        current_schedule = pd.DataFrame(schedule_raw)
-        edited_df = st.data_editor(current_schedule, use_container_width=True, num_rows="dynamic")
+        st.markdown(f"### ⚙️ GATE CONTROL: {st.session_state.username}")
         
-        if st.button("Apply & Sync to Firebase", use_container_width=True):
-            try:
-                ref.update({'schedule': edited_df.to_dict('records')})
-                write_log("Updated Schedule Configuration")
-                st.success("✅ Synced & Logged!")
-            except:
-                st.error("❌ Sync Failed!")
+        # --- Metrics: แสดงผลแบบ 2x2 บนมือถือจะดีกว่า ---
+        row1_col1, row1_col2 = st.columns(2)
+        with row1_col1: st.metric("Pressure", f"{data.get('live_pressure', 0.0):.2f} BAR")
+        with row1_col2: st.metric("Rotation", f"{data.get('valve_rotation', 0.0):.1f} REV")
+        
+        row2_col1, row2_col2 = st.columns(2)
+        with row2_col1: st.metric("Load", f"{data.get('motor_load', 0.0)} A")
+        with row2_col2: st.metric("Time", now_th.strftime("%H:%M:%S"))
 
-    # --- Control Panel ---
-    st.markdown('### 🛠️ MANUAL OVERRIDE')
-    mode_remote = firebase_data.get('auto_mode', True)
-    ctrl_1, ctrl_2, ctrl_3, ctrl_4 = st.columns([1, 1, 1, 1])
+        # --- ส่วนควบคุม ---
+        st.divider()
+        is_auto = data.get('auto_mode', True)
+        
+        auto_toggle = st.toggle("Auto Mode", value=is_auto, key="ios_auto")
+        if auto_toggle != is_auto:
+            ref.update({'auto_mode': auto_toggle})
+            write_log(f"Mode -> {'Auto' if auto_toggle else 'Manual'}")
+            st.rerun()
 
-    with ctrl_3:
-        is_auto = st.toggle("Auto Mode", value=mode_remote)
-        if is_auto != mode_remote:
-            try:
-                ref.update({'auto_mode': is_auto})
-                write_log(f"Auto Mode set to {is_auto}")
-            except: pass
+        # ปุ่มกด (จัดเรียงให้เหมาะกับนิ้วมือบน iOS)
+        c1, c2 = st.columns(2)
+        with c1:
+            if st.button("🔼 OPEN", use_container_width=True, disabled=is_auto):
+                ref.update({'command': 'OPEN', 'last_cmd_time': now_th.strftime("%H:%M:%S")})
+                write_log("Manual OPEN")
+        with c2:
+            if st.button("🔽 CLOSE", use_container_width=True, disabled=is_auto):
+                ref.update({'command': 'CLOSE', 'last_cmd_time': now_th.strftime("%H:%M:%S")})
+                write_log("Manual CLOSE")
+        
+        if st.button("🚨 EMERGENCY STOP", type="primary", use_container_width=True):
+            ref.update({'command': 'STOP', 'emergency': True})
+            write_log("!!! STOP !!!")
 
-    with ctrl_1:
-        if st.button("🔼 Open Valve", use_container_width=True, disabled=is_auto):
-            try:
-                ref.update({'command': 'OPEN', 'last_command_time': now_th.strftime("%Y-%m-%d %H:%M:%S")})
-                write_log("Manual Command: OPEN")
-            except: pass
+        # ปุ่ม Logout ท้ายหน้าสำหรับมือถือ
+        if st.button("Logout"):
+            st.session_state.logged_in = False
+            st.rerun()
 
-    with ctrl_2:
-        if st.button("🔽 Close Valve", use_container_width=True, disabled=is_auto):
-            try:
-                ref.update({'command': 'CLOSE', 'last_command_time': now_th.strftime("%Y-%m-%d %H:%M:%S")})
-                write_log("Manual Command: CLOSE")
-            except: pass
-
-    with ctrl_4:
-        if st.button("🚨 Emergency Stop", type="primary", use_container_width=True):
-            try:
-                ref.update({'command': 'STOP', 'emergency': True})
-                write_log("EMERGENCY STOP")
-                st.error("STOP SENT")
-            except: pass
-
-    # --- Logs ---
-    st.markdown("---")
-    st.markdown("### 📜 RECENT ACTIVITY LOGS")
-    try:
-        logs = log_ref.order_by_key().limit_to_last(10).get()
-        if logs:
-            log_list = [logs[key] for key in reversed(logs.keys())]
-            st.table(pd.DataFrame(log_list))
-    except: pass
-
-    time.sleep(5) # ปรับเวลา Refresh ให้เหมาะสมกับการรันบนเว็บ
+    # --- หัวใจสำคัญสำหรับ iOS ---
+    # ปรับเวลาการ Refresh ให้ช้าลงเล็กน้อย (6-10 วินาที) เพื่อไม่ให้ Safari บล็อก
+    time.sleep(8)
     st.rerun()
