@@ -182,12 +182,12 @@ if check_login():
     # --- MAIN CONTENT ---
     st.markdown('<h1 style="font-family:\'Orbitron\', \'Noto Sans Thai\'; text-shadow: 0 0 10px #00ff88;">ระบบควบคุมประตูน้ำ น.ปลาปาก</h1>', unsafe_allow_html=True)
 
-    # Dashboard Metrics
+   # --- 5. DASHBOARD METRICS ---
     m1, m2, m3, m4 = st.columns(4)
-    with m1: st.metric("Live Pressure", f"{firebase_data.get('live_pressure', 0.0):.2f} BAR")
-    with m2: st.metric("Valve Rotation", f"{firebase_data.get('valve_rotation', 0.0):.1f} REV")
-    with m3: st.metric("Motor Load", f"{firebase_data.get('motor_load', 0.0)} A")
-    with m4: st.metric("System Time (TH)", now_th.strftime("%H:%M:%S"))
+    with m1: st.metric("แรงดันขณะนี้", f"{firebase_data.get('live_pressure', 0.0):.2f} BAR")
+    with m2: st.metric("รอบการหมุนวาล์ว", f"{firebase_data.get('valve_rotation', 0.0):.1f} REV")
+    with m3: st.metric("ภาระโหลดมอเตอร์", f"{firebase_data.get('motor_load', 0.0)} A")
+    with m4: st.metric("เวลาปัจจุบัน (ไทย)", now_th.strftime("%H:%M:%S"))
 
     # Content Columns
     col_left, col_right = st.columns([1.5, 1])
@@ -261,5 +261,6 @@ if check_login():
     # Auto Refresh System
     time.sleep(5) 
     st.rerun()
+
 
 
