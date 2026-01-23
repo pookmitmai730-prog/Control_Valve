@@ -110,43 +110,53 @@ if check_login():
     firebase_data = get_safe_data()
     now_th = get_now()
 
-   # --- CSS STYLING (FIX: Sidebar Arrow & Fonts) ---
+    # --- CSS STYLING (FIX: Fonts, Metric Colors & Arrows) ---
     st.markdown("""
         <style>
-        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;700&family=Orbitron:wght@400;700&family=Rajdhani:wght@300;500;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;600;700&family=Orbitron:wght@400;700&family=Rajdhani:wght@400;600;700&display=swap');
         
-        /* 1. คืนค่าไอคอนลูกศร (SVG) ให้ไม่โดนฟอนต์ทับ */
-        [data-testid="stSidebarNav"] svg, 
-        [data-testid="collapsedControl"] svg,
-        button svg {
+        /* 1. คืนค่าไอคอนลูกศร (SVG) และสัญลักษณ์ระบบให้เป็นกราฟิกปกติ */
+        svg, [data-testid="stSidebarNav"] svg, [data-testid="collapsedControl"] svg {
             display: inline-block !important;
             fill: currentColor !important;
             color: inherit !important;
         }
 
-        /* 2. บังคับฟอนต์ Noto Sans Thai เฉพาะจุดที่เป็นข้อความจริง ๆ เท่านั้น */
+        /* 2. Global Fonts (จัดลำดับเพื่อไม่ให้ทับ Emoji และ Icon ระบบ) */
         html, body, .stMarkdown p, .stMarkdown span, label {
             font-family: 'Rajdhani', 'Noto Sans Thai', sans-serif !important;
         }
 
-        /* 3. Sidebar Customization: ข้อความสีดำ แต่ไม่ทับไอคอนลูกศร */
+        /* 3. ปรับแต่งหัวข้อ Metric ให้เป็นสีขาวเข้มคมชัด (Pure White) */
+        [data-testid="stMetricLabel"] p {
+            color: #FFFFFF !important;
+            font-family: 'Noto Sans Thai', sans-serif !important;
+            font-size: 1.15rem !important;
+            font-weight: 600 !important;
+            opacity: 1 !important;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+        }
+
+        /* 4. ปรับแต่งตัวเลข Metric (สีเขียวนีออน) */
+        [data-testid="stMetricValue"] {
+            color: #00ff88 !important;
+            font-family: 'Orbitron', sans-serif !important;
+        }
+
+        /* 5. Sidebar: ตัวหนังสือสีดำ และฟอนต์ไทย */
         [data-testid="stSidebar"] .stMarkdown p, 
         [data-testid="stSidebar"] .stMarkdown span,
         [data-testid="stSidebar"] strong {
             color: #000000 !important;
             font-family: 'Noto Sans Thai', sans-serif !important;
         }
-
-        /* 4. แก้สีปุ่มลูกศรย่อ Sidebar (กรณี Sidebar เปิดอยู่) */
-        [data-testid="collapsedControl"] {
-            color: #ffffff !important; /* สีลูกศรตอนปิด */
-        }
         
+        /* แก้สีลูกศรใน Sidebar ให้ชัดเจน */
         [data-testid="stSidebar"] button[kind="header"] {
-            color: #000000 !important; /* สีลูกศรตอนเปิดใน sidebar */
+            color: #000000 !important;
         }
 
-        /* 5. ปุ่มหลัก (คงค่า Emoji 🔼 🔽 🚨 ให้เป็นรูปภาพ) */
+        /* 6. ปุ่มควบคุม (องรับ Emoji 🔼 🔽 🚨) */
         .stButton>button { 
             background: linear-gradient(135deg, #1e272e 0%, #2f3640 100%) !important; 
             color: #00ff88 !important; 
@@ -154,10 +164,10 @@ if check_login():
             font-family: 'Segoe UI Emoji', 'Orbitron', 'Noto Sans Thai', sans-serif !important; 
         }
 
-        /* Theme อื่นๆ */
+        /* Theme พื้นหลัง */
         .stApp { background: radial-gradient(circle, #1a1f25 0%, #0d0f12 100%); color: #e0e0e0; }
         [data-testid="stSidebar"] a { color: #000000 !important; text-decoration: underline; font-weight: bold; }
-        [data-testid="stMetricValue"] { font-family: 'Orbitron', sans-serif !important; color: #00ff88 !important; }
+        .section-head-red { border-bottom: 1px solid #333; color: #ff3e3e; font-family: 'Orbitron', 'Noto Sans Thai'; font-size: 1.1rem; margin-bottom: 10px;}
         </style>
         """, unsafe_allow_html=True)
 
@@ -182,7 +192,7 @@ if check_login():
     # --- MAIN CONTENT ---
     st.markdown('<h1 style="font-family:\'Orbitron\', \'Noto Sans Thai\'; text-shadow: 0 0 10px #00ff88;">ระบบควบคุมประตูน้ำ น.ปลาปาก</h1>', unsafe_allow_html=True)
 
-   # --- 5. DASHBOARD METRICS ---
+    # --- 5. DASHBOARD METRICS ---
     m1, m2, m3, m4 = st.columns(4)
     with m1: st.metric("แรงดันขณะนี้", f"{firebase_data.get('live_pressure', 0.0):.2f} บาร์")
     with m2: st.metric("รอบการหมุนวาล์ว", f"{firebase_data.get('valve_rotation', 0.0):.1f} รอบ")
@@ -261,7 +271,3 @@ if check_login():
     # Auto Refresh System
     time.sleep(5) 
     st.rerun()
-
-
-
-
