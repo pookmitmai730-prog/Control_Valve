@@ -72,6 +72,8 @@ def check_login():
     if not st.session_state.logged_in:
         st.markdown("""
             <style>
+            @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;700&display=swap');
+            html, body, [class*="st-"] { font-family: 'Noto Sans Thai', sans-serif; }
             .login-container {
                 background-color: rgba(30, 39, 46, 0.9);
                 padding: 40px; border-radius: 15px;
@@ -108,62 +110,55 @@ if check_login():
     firebase_data = get_safe_data()
     now_th = get_now()
 
-   # --- CSS STYLING (เพิ่มส่วนนี้ในบล็อกสไตล์เดิมของคุณ) ---
+    # --- CSS STYLING (GLOBAL, NOTO SANS THAI & SIDEBAR BLACK TEXT) ---
     st.markdown("""
         <style>
-        @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700&family=Noto+Sans+Thai:wght@400;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;700&family=Orbitron:wght@400;700&family=Rajdhani:wght@300;500;700&display=swap');
         
-        /* ตั้งค่าฟอนต์สำหรับ Sidebar ทั้งหมด */
-        [data-testid="stSidebar"] {
-            font-family: 'Sarabun', 'Noto Sans Thai', sans-serif !important;
+        /* ตั้งค่าฟอนต์หลัก: ใช้ Noto Sans Thai สำหรับภาษาไทย และ Rajdhani สำหรับอังกฤษ */
+        html, body, [class*="st-"], .stMarkdown, p, div {
+            font-family: 'Noto Sans Thai', 'Rajdhani', sans-serif;
         }
 
-        /* ปรับแต่งข้อความใน Sidebar ให้เป็นสีดำและใช้ฟอนต์ไทย */
+        /* พื้นหลังหน้าจอหลัก */
+        .stApp { background: radial-gradient(circle, #1a1f25 0%, #0d0f12 100%); color: #e0e0e0; }
+        
+        /* บังคับตัวหนังสือและลิงก์ใน Sidebar เป็นสีดำ */
         [data-testid="stSidebar"] .stMarkdown, 
         [data-testid="stSidebar"] p, 
-        [data-testid="stSidebar"] h3 {
+        [data-testid="stSidebar"] strong, 
+        [data-testid="stSidebar"] span {
             color: #000000 !important;
-            font-family: 'Sarabun', sans-serif !important;
+            font-family: 'Noto Sans Thai', sans-serif !important;
         }
-
-        /* ปรับแต่งลิงก์ให้ดูสะอาดตาเหมือนสไตล์ Google */
-        [data-testid="stSidebar"] a {
-            color: #1a73e8 !important; /* สีน้ำเงินสไตล์ Google */
-            text-decoration: none !important;
-            font-weight: 500;
+        [data-testid="stSidebar"] a { 
+            color: #000000 !important; 
+            text-decoration: underline; 
+            font-weight: bold; 
+        }
+        [data-testid="stSidebar"] a:hover { 
+            color: #444444 !important; 
+            text-shadow: none !important;
         }
         
-        [data-testid="stSidebar"] a:hover {
-            text-decoration: underline !important;
-            color: #174ea6 !important;
-        }
-
-        /* ปรับแต่งปุ่ม Logout ให้ดูทันสมัย */
-        [data-testid="stSidebar"] .stButton>button {
-            border-radius: 20px !important;
-            border: 1px solid #dadce0 !important;
-            background-color: #ffffff !important;
-            color: #3c4043 !important;
-            font-family: 'Sarabun', sans-serif !important;
-            transition: all 0.2s;
-        }
-
-        [data-testid="stSidebar"] .stButton>button:hover {
-            background-color: #f1f3f4 !important;
-            border-color: #d2d2d2 !important;
-            box-shadow: 0 1px 2px 0 rgba(60,64,67,0.302), 0 1px 3px 1px rgba(60,64,67,0.149) !important;
-        }
+        /* Metric Styling: ให้ตัวเลขเป็น Orbitron */
+        div[data-testid="stVerticalBlock"] > div:has(div.stMetric) { background: rgba(30, 39, 46, 0.7); border-left: 4px solid #00ff88; padding: 15px; }
+        [data-testid="stMetricValue"] { font-family: 'Orbitron', sans-serif !important; color: #00ff88 !important; }
+        [data-testid="stMetricLabel"] { font-family: 'Noto Sans Thai', sans-serif !important; }
+        
+        /* Headers & Buttons */
+        .section-head-red { border-bottom: 1px solid #333; color: #ff3e3e; font-family: 'Orbitron', 'Noto Sans Thai'; font-size: 1.1rem; margin-bottom: 10px;}
+        .stButton>button { background: linear-gradient(135deg, #1e272e 0%, #2f3640 100%) !important; color: #00ff88 !important; border: 1px solid #00ff88 !important; font-family: 'Orbitron', 'Noto Sans Thai'; }
         </style>
-    """, unsafe_allow_html=True)
+        """, unsafe_allow_html=True)
 
-    # --- SIDEBAR & LINKS (ปรับปรุงข้อความ) ---
+    # --- SIDEBAR & LINKS (ตัวหนังสือจะเป็นสีดำ + ฟอนต์ Noto Sans Thai) ---
     st.sidebar.markdown(f"### 👤 ผู้ใช้งาน: {st.session_state.username}")
     
     if not firebase_data['online']:
-        st.sidebar.warning("⚠️ โหมดออฟไลน์")
+        st.sidebar.warning("⚠️ โหมดออฟไลน์ (Offline)")
     else:
-        # ใช้สไตล์วงกลมสีเขียวแทนคำว่า System Online ปกติ
-        st.sidebar.markdown('<p style="color:#188038; font-weight:bold;">● ระบบออนไลน์</p>', unsafe_allow_html=True)
+        st.sidebar.success("● ระบบออนไลน์ (Online)")
     
     st.sidebar.markdown("---")
     st.sidebar.markdown("🔗 **ลิงก์ข้อมูลเพิ่มเติม**")
@@ -171,12 +166,12 @@ if check_login():
     st.sidebar.markdown("- [ข้อมูล P3 นาป่งครอง น.นาแก](https://water-aimonitor-leak.onrender.com/)")
     st.sidebar.markdown("---")
 
-    if st.sidebar.button("ออกจากระบบ (Logout)", use_container_width=True):
+    if st.sidebar.button("Logout", use_container_width=True):
         st.session_state.logged_in = False
         st.rerun()
 
     # --- MAIN CONTENT ---
-    st.markdown('<h1 style="font-family:\'Orbitron\'; text-shadow: 0 0 10px #00ff88;">SYSTEM CONTROL VALVE PAPAK</h1>', unsafe_allow_html=True)
+    st.markdown('<h1 style="font-family:\'Orbitron\', \'Noto Sans Thai\'; text-shadow: 0 0 10px #00ff88;">SYSTEM CONTROL VALVE PAPAK</h1>', unsafe_allow_html=True)
 
     # Metrics
     m1, m2, m3, m4 = st.columns(4)
@@ -189,14 +184,14 @@ if check_login():
     col_left, col_right = st.columns([1.5, 1])
     
     with col_left:
-        st.markdown('<div class="section-head-red">🚨 PRESSURE TREND</div>', unsafe_allow_html=True)
+        st.markdown('<div class="section-head-red">🚨 PRESSURE TREND (แนวโน้มแรงดัน)</div>', unsafe_allow_html=True)
         if 'history_df' not in st.session_state:
             time_index = pd.date_range(start=now_th-timedelta(days=3), end=now_th, freq='1H')
             st.session_state.history_df = pd.DataFrame({'Pressure': np.random.uniform(3.5, 4.5, size=len(time_index))}, index=time_index)
         st.line_chart(st.session_state.history_df, color="#ff3e3e", height=250)
 
     with col_right:
-        st.markdown('### 📋 SCHEDULE SETTING')
+        st.markdown('### 📋 SCHEDULE SETTING (ตั้งค่าเวลา)')
         schedule_raw = firebase_data.get('schedule', [{"START_TIME": "00:00", "TARGET": 0.0}])
         current_schedule = pd.DataFrame(schedule_raw)
         edited_df = st.data_editor(current_schedule, use_container_width=True, num_rows="dynamic")
@@ -205,17 +200,17 @@ if check_login():
             try:
                 ref.update({'schedule': edited_df.to_dict('records')})
                 write_log("Updated Schedule Configuration")
-                st.success("✅ Synced & Logged!")
+                st.success("✅ บันทึกข้อมูลสำเร็จ!")
             except:
-                st.error("❌ Sync Failed!")
+                st.error("❌ บันทึกล้มเหลว!")
 
     # Manual Controls
-    st.markdown('### 🛠️ MANUAL OVERRIDE')
+    st.markdown('### 🛠️ MANUAL OVERRIDE (ควบคุมด้วยตนเอง)')
     mode_remote = firebase_data.get('auto_mode', True)
     ctrl_1, ctrl_2, ctrl_3, ctrl_4 = st.columns([1, 1, 1, 1])
 
     with ctrl_3:
-        is_auto = st.toggle("Auto Mode", value=mode_remote)
+        is_auto = st.toggle("Auto Mode (โหมดอัตโนมัติ)", value=mode_remote)
         if is_auto != mode_remote:
             try:
                 ref.update({'auto_mode': is_auto})
@@ -223,30 +218,30 @@ if check_login():
             except: pass
 
     with ctrl_1:
-        if st.button("🔼 Open Valve", use_container_width=True, disabled=is_auto):
+        if st.button("🔼 Open Valve (เปิด)", use_container_width=True, disabled=is_auto):
             try:
                 ref.update({'command': 'OPEN', 'last_command_time': now_th.strftime("%Y-%m-%d %H:%M:%S")})
                 write_log("Manual Command: OPEN")
             except: pass
 
     with ctrl_2:
-        if st.button("🔽 Close Valve", use_container_width=True, disabled=is_auto):
+        if st.button("🔽 Close Valve (ปิด)", use_container_width=True, disabled=is_auto):
             try:
                 ref.update({'command': 'CLOSE', 'last_command_time': now_th.strftime("%Y-%m-%d %H:%M:%S")})
                 write_log("Manual Command: CLOSE")
             except: pass
 
     with ctrl_4:
-        if st.button("🚨 Emergency Stop", type="primary", use_container_width=True):
+        if st.button("🚨 Emergency Stop (หยุด)", type="primary", use_container_width=True):
             try:
                 ref.update({'command': 'STOP', 'emergency': True})
                 write_log("EMERGENCY STOP")
-                st.error("STOP SENT")
+                st.error("ส่งคำสั่งหยุดฉุกเฉินแล้ว")
             except: pass
 
     # Logs
     st.markdown("---")
-    st.markdown("### 📜 RECENT ACTIVITY LOGS")
+    st.markdown("### 📜 RECENT ACTIVITY LOGS (ประวัติกิจกรรม)")
     try:
         logs = log_ref.order_by_key().limit_to_last(10).get()
         if logs:
@@ -257,4 +252,3 @@ if check_login():
     # Auto Refresh
     time.sleep(5) 
     st.rerun()
-
