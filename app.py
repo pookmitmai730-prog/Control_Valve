@@ -108,45 +108,62 @@ if check_login():
     firebase_data = get_safe_data()
     now_th = get_now()
 
-    # --- CSS STYLING (GLOBAL & SIDEBAR BLACK TEXT) ---
+   # --- CSS STYLING (เพิ่มส่วนนี้ในบล็อกสไตล์เดิมของคุณ) ---
     st.markdown("""
         <style>
-        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Rajdhani:wght@300;500;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700&family=Noto+Sans+Thai:wght@400;700&display=swap');
         
-        /* พื้นหลังหน้าจอหลัก */
-        .stApp { background: radial-gradient(circle, #1a1f25 0%, #0d0f12 100%); color: #e0e0e0; font-family: 'Rajdhani', sans-serif; }
-        
-        /* บังคับตัวหนังสือและลิงก์ใน Sidebar เป็นสีดำ */
-        [data-testid="stSidebar"] .stMarkdown, [data-testid="stSidebar"] p, [data-testid="stSidebar"] strong {
-            color: #000000 !important;
+        /* ตั้งค่าฟอนต์สำหรับ Sidebar ทั้งหมด */
+        [data-testid="stSidebar"] {
+            font-family: 'Sarabun', 'Noto Sans Thai', sans-serif !important;
         }
-        [data-testid="stSidebar"] a { 
-            color: #000000 !important; 
-            text-decoration: underline; 
-            font-weight: bold; 
-        }
-        [data-testid="stSidebar"] a:hover { 
-            color: #444444 !important; 
-            text-shadow: none !important;
-        }
-        
-        /* Metric Styling หน้าจอหลัก */
-        div[data-testid="stVerticalBlock"] > div:has(div.stMetric) { background: rgba(30, 39, 46, 0.7); border-left: 4px solid #00ff88; padding: 15px; }
-        [data-testid="stMetricValue"] { font-family: 'Orbitron', sans-serif; color: #00ff88 !important; }
-        
-        /* Headers & Buttons */
-        .section-head-red { border-bottom: 1px solid #333; color: #ff3e3e; font-family: 'Orbitron'; font-size: 1.1rem; margin-bottom: 10px;}
-        .stButton>button { background: linear-gradient(135deg, #1e272e 0%, #2f3640 100%) !important; color: #00ff88 !important; border: 1px solid #00ff88 !important; font-family: 'Orbitron'; }
-        </style>
-        """, unsafe_allow_html=True)
 
-    # --- SIDEBAR & LINKS ---
-    st.sidebar.markdown(f"### 👤 User: {st.session_state.username}")
+        /* ปรับแต่งข้อความใน Sidebar ให้เป็นสีดำและใช้ฟอนต์ไทย */
+        [data-testid="stSidebar"] .stMarkdown, 
+        [data-testid="stSidebar"] p, 
+        [data-testid="stSidebar"] h3 {
+            color: #000000 !important;
+            font-family: 'Sarabun', sans-serif !important;
+        }
+
+        /* ปรับแต่งลิงก์ให้ดูสะอาดตาเหมือนสไตล์ Google */
+        [data-testid="stSidebar"] a {
+            color: #1a73e8 !important; /* สีน้ำเงินสไตล์ Google */
+            text-decoration: none !important;
+            font-weight: 500;
+        }
+        
+        [data-testid="stSidebar"] a:hover {
+            text-decoration: underline !important;
+            color: #174ea6 !important;
+        }
+
+        /* ปรับแต่งปุ่ม Logout ให้ดูทันสมัย */
+        [data-testid="stSidebar"] .stButton>button {
+            border-radius: 20px !important;
+            border: 1px solid #dadce0 !important;
+            background-color: #ffffff !important;
+            color: #3c4043 !important;
+            font-family: 'Sarabun', sans-serif !important;
+            transition: all 0.2s;
+        }
+
+        [data-testid="stSidebar"] .stButton>button:hover {
+            background-color: #f1f3f4 !important;
+            border-color: #d2d2d2 !important;
+            box-shadow: 0 1px 2px 0 rgba(60,64,67,0.302), 0 1px 3px 1px rgba(60,64,67,0.149) !important;
+        }
+        </style>
+    """, unsafe_allow_html=True)
+
+    # --- SIDEBAR & LINKS (ปรับปรุงข้อความ) ---
+    st.sidebar.markdown(f"### 👤 ผู้ใช้งาน: {st.session_state.username}")
     
     if not firebase_data['online']:
-        st.sidebar.warning("⚠️ Offline Mode")
+        st.sidebar.warning("⚠️ โหมดออฟไลน์")
     else:
-        st.sidebar.success("● System Online")
+        # ใช้สไตล์วงกลมสีเขียวแทนคำว่า System Online ปกติ
+        st.sidebar.markdown('<p style="color:#188038; font-weight:bold;">● ระบบออนไลน์</p>', unsafe_allow_html=True)
     
     st.sidebar.markdown("---")
     st.sidebar.markdown("🔗 **ลิงก์ข้อมูลเพิ่มเติม**")
@@ -154,7 +171,7 @@ if check_login():
     st.sidebar.markdown("- [ข้อมูล P3 นาป่งครอง น.นาแก](https://water-aimonitor-leak.onrender.com/)")
     st.sidebar.markdown("---")
 
-    if st.sidebar.button("Logout", use_container_width=True):
+    if st.sidebar.button("ออกจากระบบ (Logout)", use_container_width=True):
         st.session_state.logged_in = False
         st.rerun()
 
@@ -240,3 +257,4 @@ if check_login():
     # Auto Refresh
     time.sleep(5) 
     st.rerun()
+
