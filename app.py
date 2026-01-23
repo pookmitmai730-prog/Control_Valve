@@ -2,14 +2,9 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import time
-import pytz  # เพิ่ม Library สำหรับจัดการ Timezone
 from datetime import datetime, timedelta
 import firebase_admin
 from firebase_admin import credentials, db
-
-# --- ฟังก์ชันดึงเวลาท้องถิ่น (ไทย) ---
-def get_local_now():
-    return datetime.now(pytz.timezone('Asia/Bangkok'))
 
 # --- 1. ตั้งค่า Firebase ---
 if not firebase_admin._apps:
@@ -26,7 +21,7 @@ ref = db.reference('valve_system')
 user_ref = db.reference('valve_system/users') # Node สำหรับเช็ค User
 log_ref = db.reference('activity_logs')       # Node สำหรับประวัติ
 
-# --- 2. ฟังก์ชัน Initialize User ---
+# --- 2. ฟังก์ชัน Initialize User (สร้าง admin ครั้งแรกถ้ายังไม่มี) ---
 def init_default_user():
     try:
         users = user_ref.get()
@@ -40,7 +35,7 @@ def init_default_user():
 
 init_default_user()
 
-# --- 3. ฟังก์ชันระบบ Login ---
+# --- 3. ฟังก์ชันระบบ Login (ดึงจาก Firebase) ---
 def check_login():
     if "logged_in" not in st.session_state:
         st.session_state.logged_in = False
@@ -63,6 +58,7 @@ def check_login():
             u = st.text_input("Username")
             p = st.text_input("Password", type="password")
             if st.button("Login", use_container_width=True):
+                # ตรวจสอบกับ Firebase
                 user_data = user_ref.child(u).get()
                 if user_data and user_data.get('password') == p:
                     st.session_state.logged_in = True
@@ -75,13 +71,13 @@ def check_login():
         return False
     return True
 
-# --- 4. ฟังก์ชันบันทึกประวัติ (ปรับเวลาเป็นท้องถิ่น) ---
+# --- 4. ฟังก์ชันบันทึกประวัติ ---
 def write_log(action):
     try:
         log_ref.push({
             "user": st.session_state.get('username', 'Unknown'),
             "action": action,
-            "timestamp": get_local_now().strftime("%Y-%m-%d %H:%M:%S")
+            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         })
     except: pass
 
@@ -106,7 +102,6 @@ def get_safe_data():
 if check_login():
     st.set_page_config(page_title="GATE VALVE CONTROL", layout="wide")
     firebase_data = get_safe_data()
-    current_time = get_local_now() # เก็บเวลาท้องถิ่นปัจจุบันไว้ใช้งาน
 
     # Sidebar
     st.sidebar.markdown(f"### 👤 User: {st.session_state.username}")
@@ -133,12 +128,12 @@ if check_login():
 
     st.markdown('<h1 style="font-family:\'Orbitron\'; text-shadow: 0 0 10px #00ff88;">SYSTEM CONTROL VALVE PAPAK</h1>', unsafe_allow_html=True)
 
-    # --- Metrics (ปรับเวลาเป็นท้องถิ่น) ---
+    # --- Metrics ---
     c1, c2, c3, c4 = st.columns(4)
     with c1: st.metric("Live Pressure", f"{firebase_data.get('live_pressure', 0.0):.2f} BAR")
     with c2: st.metric("Valve Rotation", f"{firebase_data.get('valve_rotation', 0.0):.1f} REV")
     with c3: st.metric("Motor Load", f"{firebase_data.get('motor_load', 0.0)} A")
-    with c4: st.metric("System Time", current_time.strftime("%H:%M:%S"))
+    with c4: st.metric("System Time", datetime.now().strftime("%H:%M:%S"))
 
     # --- Main Content ---
     col_left, col_right = st.columns([1.5, 1])
@@ -146,8 +141,7 @@ if check_login():
     with col_left:
         st.markdown('<div class="section-head-red">🚨 PRESSURE TREND</div>', unsafe_allow_html=True)
         if 'history_df' not in st.session_state:
-            # ปรับเวลาในกราฟเป็นท้องถิ่น
-            time_index = pd.date_range(start=current_time-timedelta(days=3), end=current_time, freq='1H')
+            time_index = pd.date_range(start=datetime.now()-timedelta(days=3), end=datetime.now(), freq='1H')
             st.session_state.history_df = pd.DataFrame({'Pressure': np.random.uniform(3.5, 4.5, size=len(time_index))}, index=time_index)
         st.line_chart(st.session_state.history_df, color="#ff3e3e", height=250)
 
@@ -181,16 +175,14 @@ if check_login():
     with ctrl_1:
         if st.button("🔼 Open Valve", use_container_width=True, disabled=is_auto):
             try:
-                # ปรับเวลาบันทึกคำสั่งเป็นท้องถิ่น
-                ref.update({'command': 'OPEN', 'last_command_time': str(get_local_now())})
+                ref.update({'command': 'OPEN', 'last_command_time': str(datetime.now())})
                 write_log("Manual Command: OPEN")
             except: pass
 
     with ctrl_2:
         if st.button("🔽 Close Valve", use_container_width=True, disabled=is_auto):
             try:
-                # ปรับเวลาบันทึกคำสั่งเป็นท้องถิ่น
-                ref.update({'command': 'CLOSE', 'last_command_time': str(get_local_now())})
+                ref.update({'command': 'CLOSE', 'last_command_time': str(datetime.now())})
                 write_log("Manual Command: CLOSE")
             except: pass
 
@@ -216,4 +208,5 @@ if check_login():
         st.warning("Cannot fetch logs.")
 
     time.sleep(2)
+
     st.rerun()
