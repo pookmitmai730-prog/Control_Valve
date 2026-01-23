@@ -108,6 +108,38 @@ if check_login():
     firebase_data = get_safe_data()
     now_th = get_now()
 
+    # --- CSS STYLING (GLOBAL & SIDEBAR BLACK TEXT) ---
+    st.markdown("""
+        <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Rajdhani:wght@300;500;700&display=swap');
+        
+        /* พื้นหลังหน้าจอหลัก */
+        .stApp { background: radial-gradient(circle, #1a1f25 0%, #0d0f12 100%); color: #e0e0e0; font-family: 'Rajdhani', sans-serif; }
+        
+        /* บังคับตัวหนังสือและลิงก์ใน Sidebar เป็นสีดำ */
+        [data-testid="stSidebar"] .stMarkdown, [data-testid="stSidebar"] p, [data-testid="stSidebar"] strong {
+            color: #000000 !important;
+        }
+        [data-testid="stSidebar"] a { 
+            color: #000000 !important; 
+            text-decoration: underline; 
+            font-weight: bold; 
+        }
+        [data-testid="stSidebar"] a:hover { 
+            color: #444444 !important; 
+            text-shadow: none !important;
+        }
+        
+        /* Metric Styling หน้าจอหลัก */
+        div[data-testid="stVerticalBlock"] > div:has(div.stMetric) { background: rgba(30, 39, 46, 0.7); border-left: 4px solid #00ff88; padding: 15px; }
+        [data-testid="stMetricValue"] { font-family: 'Orbitron', sans-serif; color: #00ff88 !important; }
+        
+        /* Headers & Buttons */
+        .section-head-red { border-bottom: 1px solid #333; color: #ff3e3e; font-family: 'Orbitron'; font-size: 1.1rem; margin-bottom: 10px;}
+        .stButton>button { background: linear-gradient(135deg, #1e272e 0%, #2f3640 100%) !important; color: #00ff88 !important; border: 1px solid #00ff88 !important; font-family: 'Orbitron'; }
+        </style>
+        """, unsafe_allow_html=True)
+
     # --- SIDEBAR & LINKS ---
     st.sidebar.markdown(f"### 👤 User: {st.session_state.username}")
     
@@ -126,38 +158,17 @@ if check_login():
         st.session_state.logged_in = False
         st.rerun()
 
-    # --- CSS STYLING (GLOBAL) ---
-    st.markdown("""
-        <style>
-        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Rajdhani:wght@300;500;700&display=swap');
-        .stApp { background: radial-gradient(circle, #1a1f25 0%, #0d0f12 100%); color: #e0e0e0; font-family: 'Rajdhani', sans-serif; }
-        
-        /* Sidebar Links Neon Style */
-        [data-testid="stSidebar"] a { color: #00ff88 !important; text-decoration: none; font-weight: bold; }
-        [data-testid="stSidebar"] a:hover { text-shadow: 0 0 10px #00ff88; }
-        
-        /* Metric Styling */
-        div[data-testid="stVerticalBlock"] > div:has(div.stMetric) { background: rgba(30, 39, 46, 0.7); border-left: 4px solid #00ff88; padding: 15px; }
-        [data-testid="stMetricValue"] { font-family: 'Orbitron', sans-serif; color: #00ff88 !important; }
-        
-        /* Section Headers */
-        .section-head-red { border-bottom: 1px solid #333; color: #ff3e3e; font-family: 'Orbitron'; font-size: 1.1rem; margin-bottom: 10px;}
-        
-        /* Button Styling */
-        .stButton>button { background: linear-gradient(135deg, #1e272e 0%, #2f3640 100%) !important; color: #00ff88 !important; border: 1px solid #00ff88 !important; font-family: 'Orbitron'; }
-        </style>
-        """, unsafe_allow_html=True)
-
+    # --- MAIN CONTENT ---
     st.markdown('<h1 style="font-family:\'Orbitron\'; text-shadow: 0 0 10px #00ff88;">SYSTEM CONTROL VALVE PAPAK</h1>', unsafe_allow_html=True)
 
-    # --- 5. DASHBOARD METRICS ---
+    # Metrics
     m1, m2, m3, m4 = st.columns(4)
     with m1: st.metric("Live Pressure", f"{firebase_data.get('live_pressure', 0.0):.2f} BAR")
     with m2: st.metric("Valve Rotation", f"{firebase_data.get('valve_rotation', 0.0):.1f} REV")
     with m3: st.metric("Motor Load", f"{firebase_data.get('motor_load', 0.0)} A")
     with m4: st.metric("System Time (TH)", now_th.strftime("%H:%M:%S"))
 
-    # --- 6. DATA VISUALIZATION & SCHEDULE ---
+    # Trend & Schedule
     col_left, col_right = st.columns([1.5, 1])
     
     with col_left:
@@ -181,7 +192,7 @@ if check_login():
             except:
                 st.error("❌ Sync Failed!")
 
-    # --- 7. MANUAL CONTROL PANEL ---
+    # Manual Controls
     st.markdown('### 🛠️ MANUAL OVERRIDE')
     mode_remote = firebase_data.get('auto_mode', True)
     ctrl_1, ctrl_2, ctrl_3, ctrl_4 = st.columns([1, 1, 1, 1])
@@ -216,7 +227,7 @@ if check_login():
                 st.error("STOP SENT")
             except: pass
 
-    # --- 8. ACTIVITY LOGS ---
+    # Logs
     st.markdown("---")
     st.markdown("### 📜 RECENT ACTIVITY LOGS")
     try:
@@ -226,6 +237,6 @@ if check_login():
             st.table(pd.DataFrame(log_list))
     except: pass
 
-    # --- 9. AUTO REFRESH ---
+    # Auto Refresh
     time.sleep(5) 
     st.rerun()
