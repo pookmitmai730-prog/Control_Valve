@@ -110,47 +110,54 @@ if check_login():
     firebase_data = get_safe_data()
     now_th = get_now()
 
-    # --- CSS STYLING (THEME & FONT FIX) ---
+   # --- CSS STYLING (FIX: Sidebar Arrow & Fonts) ---
     st.markdown("""
         <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;700&family=Orbitron:wght@400;700&family=Rajdhani:wght@300;500;700&display=swap');
         
-        /* 1. Global Font: ใช้ภาษาอังกฤษนำหน้าเพื่อคงสภาพ Emoji/Icons */
-        html, body, [class*="st-"], .stMarkdown, p, div {
-            font-family: 'Rajdhani', 'Noto Sans Thai', 'Segoe UI Emoji', sans-serif;
+        /* 1. คืนค่าไอคอนลูกศร (SVG) ให้ไม่โดนฟอนต์ทับ */
+        [data-testid="stSidebarNav"] svg, 
+        [data-testid="collapsedControl"] svg,
+        button svg {
+            display: inline-block !important;
+            fill: currentColor !important;
+            color: inherit !important;
         }
 
-        /* 2. Main Theme */
-        .stApp { background: radial-gradient(circle, #1a1f25 0%, #0d0f12 100%); color: #e0e0e0; }
-        
-        /* 3. Sidebar Customization (Black Text & Noto Sans Thai) */
-        [data-testid="stSidebar"] .stMarkdown, 
-        [data-testid="stSidebar"] p, 
-        [data-testid="stSidebar"] strong, 
-        [data-testid="stSidebar"] span,
-        [data-testid="stSidebar"] label {
+        /* 2. บังคับฟอนต์ Noto Sans Thai เฉพาะจุดที่เป็นข้อความจริง ๆ เท่านั้น */
+        html, body, .stMarkdown p, .stMarkdown span, label {
+            font-family: 'Rajdhani', 'Noto Sans Thai', sans-serif !important;
+        }
+
+        /* 3. Sidebar Customization: ข้อความสีดำ แต่ไม่ทับไอคอนลูกศร */
+        [data-testid="stSidebar"] .stMarkdown p, 
+        [data-testid="stSidebar"] .stMarkdown span,
+        [data-testid="stSidebar"] strong {
             color: #000000 !important;
-            font-family: 'Noto Sans Thai', 'Segoe UI Emoji', sans-serif !important;
+            font-family: 'Noto Sans Thai', sans-serif !important;
         }
-        [data-testid="stSidebar"] a { 
-            color: #000000 !important; 
-            text-decoration: underline; 
-            font-weight: bold; 
+
+        /* 4. แก้สีปุ่มลูกศรย่อ Sidebar (กรณี Sidebar เปิดอยู่) */
+        [data-testid="collapsedControl"] {
+            color: #ffffff !important; /* สีลูกศรตอนปิด */
         }
         
-        /* 4. Metric & UI Elements */
-        div[data-testid="stVerticalBlock"] > div:has(div.stMetric) { background: rgba(30, 39, 46, 0.7); border-left: 4px solid #00ff88; padding: 15px; }
-        [data-testid="stMetricValue"] { font-family: 'Orbitron', sans-serif !important; color: #00ff88 !important; }
-        [data-testid="stMetricLabel"] { font-family: 'Noto Sans Thai', sans-serif !important; }
-        
-        /* 5. Buttons Styling (Restore Emoji Support) */
+        [data-testid="stSidebar"] button[kind="header"] {
+            color: #000000 !important; /* สีลูกศรตอนเปิดใน sidebar */
+        }
+
+        /* 5. ปุ่มหลัก (คงค่า Emoji 🔼 🔽 🚨 ให้เป็นรูปภาพ) */
         .stButton>button { 
             background: linear-gradient(135deg, #1e272e 0%, #2f3640 100%) !important; 
             color: #00ff88 !important; 
             border: 1px solid #00ff88 !important; 
             font-family: 'Segoe UI Emoji', 'Orbitron', 'Noto Sans Thai', sans-serif !important; 
         }
-        .section-head-red { border-bottom: 1px solid #333; color: #ff3e3e; font-family: 'Orbitron', 'Noto Sans Thai'; font-size: 1.1rem; margin-bottom: 10px;}
+
+        /* Theme อื่นๆ */
+        .stApp { background: radial-gradient(circle, #1a1f25 0%, #0d0f12 100%); color: #e0e0e0; }
+        [data-testid="stSidebar"] a { color: #000000 !important; text-decoration: underline; font-weight: bold; }
+        [data-testid="stMetricValue"] { font-family: 'Orbitron', sans-serif !important; color: #00ff88 !important; }
         </style>
         """, unsafe_allow_html=True)
 
@@ -254,3 +261,4 @@ if check_login():
     # Auto Refresh System
     time.sleep(5) 
     st.rerun()
+
